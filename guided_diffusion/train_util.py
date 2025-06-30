@@ -11,6 +11,14 @@ import torch.cuda.amp as amp
 
 import itertools
 
+
+
+
+
+
+
+
+
 from . import dist_util, logger
 from .resample import LossAwareSampler, UniformSampler
 from DWT_IDWT.DWT_IDWT_layer import DWT_3D, IDWT_3D
@@ -22,6 +30,27 @@ def visualize(img):
     _max = img.max()
     normalized_img = (img - _min)/ (_max - _min)
     return normalized_img
+
+import os
+import torch
+import torch.distributed as dist
+
+def setup_ddp():
+#    dist.init_process_group(backend="nccl", init_method="env://")
+    local_rank = int(os.environ["LOCAL_RANK"])
+    torch.cuda.set_device(local_rank)
+    return torch.device("cuda", local_rank), local_rank
+
+
+
+
+
+
+
+
+
+
+
 
 class TrainLoop:
     def __init__(
@@ -45,15 +74,19 @@ class TrainLoop:
         fp16_scale_growth=1e-3,
         schedule_sampler=None,
         weight_decay=0.0,
-        lr_anneal_steps=0,
+        lr_anneal_steps=200,
         dataset='brats',
         summary_writer=None,
         mode='default',
         loss_level='image',
     ):
+        device, local_rank = setup_ddp()
         self.summary_writer = summary_writer
         self.mode = mode
-        self.model = model
+        print(device)
+        lr_anneal_steps=200
+        model = model.to(device)
+        self.model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[device.index])
         self.diffusion = diffusion
         self.datal = data
         self.dataset = dataset
@@ -81,7 +114,7 @@ class TrainLoop:
         self.schedule_sampler = schedule_sampler or UniformSampler(diffusion)
         self.weight_decay = weight_decay
         self.lr_anneal_steps = lr_anneal_steps
-
+        print("lr steps", lr_anneal_steps)
         self.dwt = DWT_3D('haar')
         self.idwt = IDWT_3D('haar')
 

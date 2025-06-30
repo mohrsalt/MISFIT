@@ -33,6 +33,7 @@ class BRATSVolumes(torch.utils.data.Dataset):
                 datapoint = dict()
                 # extract all files as channels
                 for f in files:
+                    if (f==".DS_Store"): continue
                     seqtype = f.split('-')[4].split('.')[0]
                     datapoint[seqtype] = os.path.join(root, f)
                 self.database.append(datapoint)

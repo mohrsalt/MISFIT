@@ -5,7 +5,7 @@ import numpy as np
 import torch as th
 import torch.nn as nn
 import torch.nn.functional as F
-
+import torch
 from .nn import checkpoint, conv_nd, linear, avg_pool_nd, zero_module, normalization, timestep_embedding
 from DWT_IDWT.DWT_IDWT_layer import DWT_3D, IDWT_3D
 
@@ -527,7 +527,7 @@ class UNetModel(nn.Module):
         self.num_heads_upsample = num_heads_upsample
         self.num_groups = num_groups
         self.bottleneck_attention = bottleneck_attention
-        self.devices = None
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.decoder_device_thresh = decoder_device_thresh
         self.additive_skips = additive_skips
 
@@ -724,7 +724,7 @@ class UNetModel(nn.Module):
             zero_module(conv_nd(dims, model_channels, out_channels, 3, padding=1)),
         )
 
-    def to(self, *args, **kwargs):
+    def toe(self, *args, **kwargs):
         """
         we overwrite the to() method for the case where we
         distribute parts of our model to different devices
@@ -733,7 +733,7 @@ class UNetModel(nn.Module):
             assert not kwargs and len(args) == 1
             # distribute to multiple devices
             self.devices = args[0]
-            # move first half to first device, second half to second device
+            print(args)
             self.input_blocks.to(self.devices[0])
             self.time_embed.to(self.devices[0])
             self.middle_block.to(self.devices[0])  # maybe devices 0
@@ -752,19 +752,13 @@ class UNetModel(nn.Module):
                 self.devices = [p.device, p.device]
 
     def forward(self, x, timesteps, y=None):
-        """
-        Apply the model to an input batch.
-
-        :param x: an [N x C x ...] Tensor of inputs.
-        :param timesteps: a 1-D batch of timesteps.
-        :param y: an [N] Tensor of labels, if class-conditional.
-        :return: an [N x C x ...] Tensor of outputs.
-        """
+        #print(self.devices)
+        #print(x.device)
         assert (y is not None) == (
             self.num_classes is not None
         ), "must specify y if and only if the model is class-conditional"
-        assert x.device == self.devices[0], f"{x.device=} does not match {self.devices[0]=}"
-        assert timesteps.device == self.devices[0], f"{timesteps.device=} does not match {self.devices[0]=}"
+        #assert x.device == self.devices[0], f"{x.device=} does not match {self.devices[0]=}"
+        #assert timesteps.device == self.devices[0], f"{timesteps.device=} does not match {self.devices[0]=}"
 
         hs = []
         emb = self.time_embed(timestep_embedding(timesteps, self.model_channels))
@@ -785,18 +779,17 @@ class UNetModel(nn.Module):
         for k, module in enumerate(self.output_blocks):
             new_hs = hs.pop()
             if k == self.decoder_device_thresh:
-                h = h.to(self.devices[1])
-                emb = emb.to(self.devices[1])
+                h = h.to(self.device)
+                emb = emb.to(self.device)
             if k >= self.decoder_device_thresh:
-                new_hs = new_hs.to(self.devices[1])
-
+                new_hs = new_hs.to(self.device)
             if self.additive_skips:
                 h = (h + new_hs) / 2
             else:
                 h = th.cat([h, new_hs], dim=1)
 
             h = module(h, emb)
-        h = h.to(self.devices[0])
+        h = h.to(self.device)
         return self.out(h)
 
 

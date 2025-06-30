@@ -1,5 +1,5 @@
 # general settings
-GPU=0;                    # gpu to use
+GPU=0,1,2,3                    # gpu to use
 SEED=42;                  # randomness seed for sampling
 CHANNELS=64;              # number of model base channels (we use 64 for all experiments)
 MODE='train';             # train, sample, auto (for automatic missing contrast generation)
@@ -33,7 +33,7 @@ if [[ $MODE == 'train' ]]; then
   echo "MODE: training";
   if [[ $DATASET == 'brats' ]]; then
     echo "DATASET: BRATS";
-    DATA_DIR=./datasets/BRATS2023/training;
+    DATA_DIR=/home/Mohor.Banerjee@mbzuai.ac.ae/data_cwdm
   else
     echo "DATASET NOT FOUND -> Check the supported datasets again";
   fi
@@ -116,7 +116,7 @@ SAMPLE="
 
 # run the python scripts
 if [[ $MODE == 'train' ]]; then
-  python scripts/train.py $TRAIN $COMMON;
+  torchrun --nproc_per_node=4 scripts/train.py $TRAIN $COMMON;
 
 elif [[ $MODE == 'sample' ]]; then
   python scripts/sample.py $SAMPLE $COMMON;

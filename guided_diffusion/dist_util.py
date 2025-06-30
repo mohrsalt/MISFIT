@@ -5,14 +5,14 @@ Helpers for distributed training.
 import io
 import os
 import socket
-
+import torch
 import blobfile as bf
 import torch as th
 import torch.distributed as dist
 
 # Change this to reflect your cluster layout.
 # The GPU for a given rank is (rank % GPUS_PER_NODE).
-GPUS_PER_NODE = 8
+GPUS_PER_NODE = 4
 
 SETUP_RETRY_COUNT = 3
 
@@ -57,19 +57,20 @@ def dev(device_number=0):
     """
     Get the device to use for torch.distributed.
     """
-    if isinstance(device_number, (list, tuple)):  # multiple devices specified
-        return [dev(k) for k in device_number]    # recursive call
-    if th.cuda.is_available():
-        device_count = th.cuda.device_count()
-        if device_count == 1:
-            return th.device(f"cuda")
-        else:
-            if device_number < device_count:  # if we specify multiple devices, we have to be specific
-                return th.device(f'cuda:{device_number}')
-            else:
-                raise ValueError(f'requested device number {device_number} (0-indexed) but only {device_count} devices available')
-    return th.device("cpu")
+#    if isinstance(device_number, (list, tuple)):  # multiple devices specified
+#        return [dev(k) for k in device_number]    # recursive call
+#    if th.cuda.is_available():
 
+#        device_count = th.cuda.device_count()
+ #       if device_count == 1:
+#            return th.device(f"cuda")
+#        else:
+#            if device_number < device_count:  # if we specify multiple devices, we have to be specific
+#                return th.device(f'cuda:{device_number}')
+#            else:
+#                raise ValueError(f'requested device number {device_number} (0-indexed) but only {device_count} devices available')
+#    return th.device("cpu")
+    return torch.device("cuda", int(os.environ["LOCAL_RANK"]))
 
 def load_state_dict(path, **kwargs):
     """

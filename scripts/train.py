@@ -8,6 +8,8 @@ import random
 import sys
 import torch as th
 
+from torch.utils.data.distributed import DistributedSampler
+
 sys.path.append(".")
 sys.path.append("..")
 
@@ -18,9 +20,20 @@ from guided_diffusion.script_util import (model_and_diffusion_defaults, create_m
 from guided_diffusion.train_util import TrainLoop
 from guided_diffusion.bratsloader import BRATSVolumes
 from torch.utils.tensorboard import SummaryWriter
+import torch
+import torch.distributed as dist
 
+
+
+
+def setup_ddp():
+    dist.init_process_group(backend="nccl", init_method="env://")
+    local_rank = int(os.environ["LOCAL_RANK"])
+    torch.cuda.set_device(local_rank)
+    return torch.device("cuda", local_rank), local_rank
 
 def main():
+    dist.init_process_group(backend="nccl", init_method="env://")    
     args = create_argparser().parse_args()
     seed = args.seed
     th.manual_seed(seed)
@@ -41,25 +54,27 @@ def main():
     else:
         logger.configure()
 
-    dist_util.setup_dist(devices=args.devices)
-
+    #dist_util.setup_dist(devices=['0','1', '2', '3'])
+    logger.log(args.devices)
     logger.log("Creating model and diffusion...")
     arguments = args_to_dict(args, model_and_diffusion_defaults().keys())
     model, diffusion = create_model_and_diffusion(**arguments)
 
     # logger.log("Number of trainable parameters: {}".format(np.array([np.array(p.shape).prod() for p in model.parameters()]).sum()))
-    model.to(dist_util.dev([0, 1]) if len(args.devices) > 1 else dist_util.dev())  # allow for 2 devices
+   # model.to(dist_util.dev([0, 1,2,3]) if len(args.devices) > 1 else dist_util.dev())  # allow for 2 devices
     schedule_sampler = create_named_schedule_sampler(args.schedule_sampler, diffusion,  maxt=1000)
 
     if args.dataset == 'brats':
         ds = BRATSVolumes(args.data_dir, mode='train')
-
-    datal = th.utils.data.DataLoader(ds,
+    sampler = DistributedSampler(ds, shuffle=True)
+    
+    datal = th.utils.data.DataLoader(ds,sampler=sampler,
                                      batch_size=args.batch_size,
                                      num_workers=args.num_workers,
-                                     shuffle=True,)
+                                     )
 
     logger.log("Start training...")
+    print(f"[Rank {torch.distributed.get_rank()}] Number of samples: {len(sampler)}")
     TrainLoop(
         model=model,
         diffusion=diffusion,
