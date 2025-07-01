@@ -57,7 +57,7 @@ class VQLPIPSWithDiscriminator(nn.Module):
         self.discriminator_weight = disc_weight
      
 
-    def mean_flat(tensor):
+    def mean_flat(self, tensor):
         """
         Take the mean over all non-batch dimensions.
         """
