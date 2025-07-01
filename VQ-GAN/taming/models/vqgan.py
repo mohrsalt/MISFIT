@@ -275,10 +275,10 @@ class VQModel(pl.LightningModule):
         xrec = z_tar_rec
         print("xrec shape: ",xrec.shape)
         aeloss, log_dict_ae = self.loss( x_tar, xrec, 0, self.global_step,
-                                            last_layer=None, split="val")
+                                            last_layer=None, label=y,split="val")
 
         discloss, log_dict_disc = self.loss( x_tar, xrec, 1, self.global_step,
-                                            last_layer=None, split="val")
+                                            last_layer=None, label=y,split="val")
         rec_loss = log_dict_ae.pop("val/rec_loss", None)
         
         self.log("val/rec_loss", rec_loss,
