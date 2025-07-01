@@ -107,7 +107,7 @@ class VQModel(pl.LightningModule):
         h1=h1.unsqueeze(1)
         h2=h2.unsqueeze(1)
         h3=h3.unsqueeze(1)
-        h_concat=torch.concat([h1,h2,h3],dim=1) (1,4,8,112,112,80)
+        h_concat=torch.concat([h1,h2,h3],dim=1) 
         h=self.caff(h_concat,input_modals)
         #caff
         latent_transfer = self.spade(h, target)       #caff spade dimensions
