@@ -165,20 +165,19 @@ class VQModel(pl.LightningModule):
         return x_fusion
     
     def modalities_to_indices(self, source):
+        
         m = ["t1n", "t1c", "t2w", "t2f"]
-     
-        if isinstance(source[0], str):  # handle batch size 1
-            source = [source]
+
 
         choices = []
         for s in source:
-            # flatten if s contains tuples
-            if isinstance(s[0], tuple):
-                s = [mod[0] for mod in s]
-            choices.append([m.index(mod) for mod in s])
+           choices.append([m.index(mod) for mod in s])
+
 
         batched_choices = torch.tensor(choices)
+        batched_choices=batched_choices.T
 
+        print("batch shape ",batched_choices.shape)
         return batched_choices
 
 
@@ -189,8 +188,8 @@ class VQModel(pl.LightningModule):
     def training_step(self, batch, batch_idx):
         # MANUAL optimization mode
         opt_ae, opt_disc = self.optimizers()
-        flat_sources = [s[0] if isinstance(s, tuple) else s for s in batch["sources_list"]]
-        src_idx=self.modalities_to_indices(flat_sources)
+        
+        src_idx=self.modalities_to_indices(batch["sources_list"])
         x_tar = self.get_input(batch, "target")
 
         input=self.get_input(batch, "source")
@@ -245,9 +244,9 @@ class VQModel(pl.LightningModule):
         return aeloss + discloss
 
     def validation_step(self, batch, batch_idx):
-        flat_sources = [s[0] if isinstance(s, tuple) else s for s in batch["sources_list"]]
+        
 
-        src_idx=self.modalities_to_indices(flat_sources)
+        src_idx=self.modalities_to_indices(batch["sources_list"])
         x_tar = self.get_input(batch, "target")
 
         input=self.get_input(batch, "source")
@@ -310,8 +309,8 @@ class VQModel(pl.LightningModule):
 
     def log_images(self, batch, **kwargs):
         log = dict()
-        flat_sources = [s[0] if isinstance(s, tuple) else s for s in batch["sources_list"]]
-        src_idx=self.modalities_to_indices(flat_sources)
+        
+        src_idx=self.modalities_to_indices(batch["sources_list"])
         x_tar = self.get_input(batch, "target")
 
         input=self.get_input(batch, "source").to(self.device)
