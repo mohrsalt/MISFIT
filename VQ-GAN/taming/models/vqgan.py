@@ -324,7 +324,7 @@ class VQModel(pl.LightningModule):
        
         x_tar = x_tar.to(self.device)
 
-        xrec, _ = self(input, y,src_idx)
+        xrec = self(input, y,src_idx)
 
         log["source"] = input
         log["target"] = x_tar
