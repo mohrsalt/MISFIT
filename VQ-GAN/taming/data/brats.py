@@ -28,8 +28,8 @@ def get_transforms(phase="train"):
             transforms.Orientationd(keys=modalities, axcodes="RAS", allow_missing_keys=True),
             transforms.EnsureTyped(keys=modalities, allow_missing_keys=True),
             transforms.CropForegroundd(keys=modalities, source_key="t1n", margin=0, allow_missing_keys=True),
-            transforms.SpatialPadd(keys=modalities, spatial_size=(144, 192, 144), allow_missing_keys=True),
-            transforms.CenterSpatialCropd(keys=modalities, roi_size=(144, 192, 144), allow_missing_keys=True),
+            transforms.SpatialPadd(keys=modalities, spatial_size=(224, 224, 160), allow_missing_keys=True),
+            transforms.CenterSpatialCropd(keys=modalities, roi_size=(224, 224, 160), allow_missing_keys=True),
             transforms.ScaleIntensityRangePercentilesd(keys=modalities, lower=0.5, upper=99.5, b_min=-1, b_max=1, allow_missing_keys=True),
             train_transforms if phase == "train" else transforms.Compose([])
         ]

@@ -7,10 +7,11 @@ import copy
 from main import instantiate_from_config
 
 from taming.models.normalization import SPADEGenerator
-from taming.modules.diffusionmodules.model import Encoder, Decoder
-from taming.modules.vqvae.quantize import VectorQuantizer2 as VectorQuantizer
 
 
+from DWT_IDWT.DWT_IDWT_layer import DWT_3D, IDWT_3D
+dwt = DWT_3D('haar')
+idwt = IDWT_3D('haar')
 class CHattnblock(nn.Module):
     def __init__(self, dim=64):
         super().__init__()
@@ -46,27 +47,16 @@ class VQModel(pl.LightningModule):
         self.automatic_optimization = False
 
         self.image_key = image_key
-        self.encoder = Encoder(**ddconfig)
-        ddconfig_new = copy.deepcopy(ddconfig)
-        ddconfig_new['in_channels'] = 3
-        self.encoder_complementary = Encoder(**ddconfig_new) #new
-        self.decoder = Decoder(**ddconfig)
-        self.loss = instantiate_from_config(lossconfig)
-        self.quantize = VectorQuantizer(n_embed, embed_dim, beta=0.25,
-                                        remap=remap, sane_index_shape=sane_index_shape) 
-        self.quant_conv = torch.nn.Conv3d(ddconfig["z_channels"], embed_dim, 1)
 
-        self.post_quant_conv = torch.nn.Conv3d(embed_dim, ddconfig["z_channels"], 1)
-        self.attn_blocks = nn.ModuleList([CHattnblock(64*2) for i in range(5)]) #new
-        self.conv1 = nn.Conv3d(256, 128, 1) #new
+        self.loss = instantiate_from_config(lossconfig)
+
+
+        self.attn_blocks = nn.ModuleList([CHattnblock(8) for i in range(4)]) #new
+        self.conv1 = nn.Conv3d(16, 8, 1) #new
         
         
         self.spade = SPADEGenerator(num_classes, ddconfig["z_channels"])
-        self.conv_out_enc = torch.nn.Conv3d(128,
-                                        4,
-                                         kernel_size=3,
-                                        stride=1,
-                                         padding=1) #new
+
         self.stage = stage
         if ckpt_path is not None:
             self.init_from_ckpt(ckpt_path, ignore_keys=ignore_keys)
@@ -88,53 +78,41 @@ class VQModel(pl.LightningModule):
         self.load_state_dict(sd, strict=False)
         print(f"Restored from {path}")
 
-    def encode(self, x):
-        h = self.encoder(x)
-        return h
+
+
+    def encode(self, in_image):
+            LLL, LLH, LHL, LHH, HLL, HLH, HHL, HHH = dwt(in_image)
+            dwt_image = torch.cat([LLL / 3., LLH, LHL, LHH, HLL, HLH, HHL, HHH], dim=1)
+            return dwt_image
+    
+    def decode(self, model_output):
+        B, _, H, W, D = model_output.size()
+        model_output_idwt = idwt(model_output[:, 0, :, :, :].view(B, 1, H, W, D) * 3.,
+                                 model_output[:, 1, :, :, :].view(B, 1, H, W, D),
+                                 model_output[:, 2, :, :, :].view(B, 1, H, W, D),
+                                 model_output[:, 3, :, :, :].view(B, 1, H, W, D),
+                                 model_output[:, 4, :, :, :].view(B, 1, H, W, D),
+                                 model_output[:, 5, :, :, :].view(B, 1, H, W, D),
+                                 model_output[:, 6, :, :, :].view(B, 1, H, W, D),
+                                 model_output[:, 7, :, :, :].view(B, 1, H, W, D))
         
-    def encode_comp(self, x):
-        h = self.encoder_complementary(x)
-        return h
+
+        return model_output_idwt
     
-    def quantizer(self, h):
-        h = self.conv_out_enc(h)
-        h = self.quant_conv(h)
-        quant, emb_loss, info = self.quantize(h)
-
-        return quant, emb_loss, info
-    
-    def decode(self, quant):
-        quant = self.post_quant_conv(quant)
-        dec = self.decoder(quant)
-        return dec
-
-    def decode_code(self, code_b):
-        quant_b = self.quantize.embed_code(code_b)
-        dec = self.decode(quant_b)
-        return dec
-
     def forward(self, input, target=None, input_modals=None):
-        if target is None:
-            h=self.encode(input)
-        else:
-            h1=self.encode(input[:,0].unsqueeze(1))
-            h2=self.encode(input[:,1].unsqueeze(1))
-            h3=self.encode(input[:,2].unsqueeze(1))
-            h_comp=self.encoder_complementary(input)
-            h1=h1.unsqueeze(1)
-            h2=h2.unsqueeze(1)
-            h3=h3.unsqueeze(1)
-            h_comp=h_comp.unsqueeze(1)
-            h_concat=torch.concat([h1,h2,h3,h_comp],dim=1)
-            h=self.caff(h_concat,input_modals)
-        #caff
-     
-        quant, diff, _ = self.quantizer(h)
-        if target is not None: quant = self.spade(quant, target)
        
-        dec = self.decode(quant)
-    
-        return dec, diff
+        h1=self.encode(input[:,0].unsqueeze(1)) #(1,8,112,112,80)
+        h2=self.encode(input[:,1].unsqueeze(1))
+        h3=self.encode(input[:,2].unsqueeze(1))
+        h1=h1.unsqueeze(1)
+        h2=h2.unsqueeze(1)
+        h3=h3.unsqueeze(1)
+        h_concat=torch.concat([h1,h2,h3],dim=1) (1,4,8,112,112,80)
+        h=self.caff(h_concat,input_modals)
+        #caff
+        latent_transfer = self.spade(h, target)       #caff spade dimensions
+        dec = self.decode(latent_transfer)   
+        return dec
 
     def get_input(self, batch, k):
         x = batch[k]
@@ -165,23 +143,22 @@ class VQModel(pl.LightningModule):
             rawraw_attns.append(sample_attns)
         raw_attns.append(torch.cat(rawraw_attns,dim=0))
     
-        comp_attn = self.attn_blocks[-1](net_z[:, -1]).unsqueeze(1)  
-        raw_attns.append(comp_attn)
+
 
         x_attns = torch.cat(raw_attns, dim=1)  
 
     
         for i in range(3):
             x_fusion_s += net_z[:, i] * x_attns[:, i]
-        x_fusion_s += net_z[:, -1] * x_attns[:, -1]
+        
 
     
         x_attns_soft = F.softmax(x_attns[:, :3], dim=1)  
-        x_attns = torch.cat([x_attns_soft, x_attns[:, 3:]], dim=1)
+        x_attns = x_attns_soft
 
         for i in range(3):
             x_fusion_h += net_z[:, i] * x_attns[:, i]
-        x_fusion_h += net_z[:, -1]  # raw residual (no attention weight)
+       
 
         
         x_fusion = self.conv1(torch.cat((x_fusion_s, x_fusion_h), dim=1))  
@@ -218,40 +195,32 @@ class VQModel(pl.LightningModule):
 
         input=self.get_input(batch, "source")
         y = batch["target_class"].long()
-        
-        
-        skip_pass = 1
-      
-        if self.stage == 1:
-            xrec, qloss = self(x_tar)
-            y=None
-        else:
-            h1 = self.encode(input[:, 0].unsqueeze(1))
+
+
+        h1 = self.encode(input[:, 0].unsqueeze(1))
             
-            h2 = self.encode(input[:, 1].unsqueeze(1))
-            h3 = self.encode(input[:, 2].unsqueeze(1))
-            h_comp = self.encode_comp(input)
-            h1=h1.unsqueeze(1)
-            h2=h2.unsqueeze(1)
-            h3=h3.unsqueeze(1)
-            h_comp=h_comp.unsqueeze(1)
-            h_concat = torch.concat([h1, h2, h3, h_comp], dim=1)
-            h = self.caff(h_concat, src_idx)
-            z_src, qloss, _ = self.quantizer(h)
-            z_tar_rec = self.spade(z_src, y)
-            z_temp = self.encode(x_tar)
-            z_tar, _, _ = self.quantizer(z_temp)
-            x_tar = z_tar
-            xrec = z_tar_rec
+        h2 = self.encode(input[:, 1].unsqueeze(1))
+        h3 = self.encode(input[:, 2].unsqueeze(1))
+        h1=h1.unsqueeze(1)
+        h2=h2.unsqueeze(1)
+        h3=h3.unsqueeze(1)
+        h_concat = torch.concat([h1, h2, h3], dim=1)
+        h = self.caff(h_concat, src_idx)
+       
+        z_tar_rec = self.spade(h, y)
+        z_temp = self.encode(x_tar)
+            
+        x_tar = z_temp
+        xrec = z_tar_rec
 
         # ---- Autoencoder Update ----
-     
+     #check above once
         opt_ae.zero_grad()
       
         
         aeloss, log_dict_ae = self.loss(
-            qloss, x_tar, xrec, 0, self.global_step,
-            last_layer=self.get_last_layer(), label=y, split="train"
+            x_tar, xrec, 0, self.global_step,
+            last_layer=None, label=y, split="train"
         )
   
         self.manual_backward(aeloss)
@@ -264,8 +233,8 @@ class VQModel(pl.LightningModule):
         # ---- Discriminator Update ----
         opt_disc.zero_grad()
         discloss, log_dict_disc = self.loss(
-            qloss, x_tar, xrec, 1, self.global_step,
-            last_layer=self.get_last_layer(), label=y, split="train"
+            x_tar, xrec, 1, self.global_step,
+            last_layer=None, label=y, split="train"
         )
         self.manual_backward(discloss)
         opt_disc.step()
@@ -285,33 +254,31 @@ class VQModel(pl.LightningModule):
         y = batch["target_class"].long()
        
 
-        if self.stage == 1: 
-            xrec, qloss = self(x_tar)
+ 
             
-        else:
-            h1=self.encode(input[:,0].unsqueeze(1))
-            h2=self.encode(input[:,1].unsqueeze(1))
-            h3=self.encode(input[:,2].unsqueeze(1))
-            h_comp=self.encode_comp(input)
-            h1=h1.unsqueeze(1)
-            h2=h2.unsqueeze(1)
-            h3=h3.unsqueeze(1)
-            h_comp=h_comp.unsqueeze(1)
-            
-            h_concat=torch.concat([h1,h2,h3,h_comp],dim=1)
-            h=self.caff(h_concat,src_idx)
-            z_src, qloss, _ = self.quantizer(h)
-            z_tar_rec = self.spade(z_src, y)
-            z_temp=self.encode(x_tar)
-            z_tar,_,_=self.quantizer(z_temp)
-            x_tar = z_tar
-            xrec = z_tar_rec
-        print("xrec shape: ",xrec.shape)
-        aeloss, log_dict_ae = self.loss(qloss, x_tar, xrec, 0, self.global_step,
-                                            last_layer=self.get_last_layer(), split="val")
+ 
+        h1=self.encode(input[:,0].unsqueeze(1))
+        h2=self.encode(input[:,1].unsqueeze(1))
+        h3=self.encode(input[:,2].unsqueeze(1))
+        h1=h1.unsqueeze(1)
+        h2=h2.unsqueeze(1)
+        h3=h3.unsqueeze(1)
 
-        discloss, log_dict_disc = self.loss(qloss, x_tar, xrec, 1, self.global_step,
-                                            last_layer=self.get_last_layer(), split="val")
+        
+        h_concat=torch.concat([h1,h2,h3],dim=1)
+        z_src=self.caff(h_concat,src_idx)
+       
+        z_tar_rec = self.spade(z_src, y)
+        z_tar=self.encode(x_tar)
+        
+        x_tar = z_tar
+        xrec = z_tar_rec
+        print("xrec shape: ",xrec.shape)
+        aeloss, log_dict_ae = self.loss( x_tar, xrec, 0, self.global_step,
+                                            last_layer=None, split="val")
+
+        discloss, log_dict_disc = self.loss( x_tar, xrec, 1, self.global_step,
+                                            last_layer=None, split="val")
         rec_loss = log_dict_ae.pop("val/rec_loss", None)
         
         self.log("val/rec_loss", rec_loss,
@@ -321,42 +288,25 @@ class VQModel(pl.LightningModule):
         self.log_dict(log_dict_ae)
         self.log_dict(log_dict_disc)
         return self.log_dict
+    
+    #check train and val and fwd loops, change spade and caff shape
 
     def configure_optimizers(self):
         lr = self.learning_rate
-        if self.stage == 1:
-            for p in self.spade.parameters(): p.requires_grad = False
-            for block in self.attn_blocks:
-                for param in block.parameters():
-                    param.requires_grad = False
-            for p in self.encoder_complementary.parameters(): p.requires_grad = False
-            for p in self.conv1.parameters(): p.requires_grad = False
-            for p in self.encoder.parameters(): p.requires_grad = True
-            for p in self.decoder.parameters(): p.requires_grad = True
-            opt_ae = torch.optim.Adam(list(self.encoder.parameters()) +
-                                  list(self.decoder.parameters()) +
-                                  list(self.quantize.parameters()) +
-                                  list(self.quant_conv.parameters()) +
-                                  list(self.post_quant_conv.parameters()) +
-                                  list(self.conv_out_enc.parameters()), lr=lr, betas=(0.5, 0.9))
-        else:
-            for p in self.spade.parameters(): p.requires_grad = True
-            for p in self.encoder.parameters(): p.requires_grad = False
-            for p in self.decoder.parameters(): p.requires_grad = False
-            params = (
+
+        for p in self.spade.parameters(): p.requires_grad = True
+        
+        params = (
     list(self.spade.parameters()) +
-    list(self.encoder_complementary.parameters()) +
     list(self.conv1.parameters()) +
     list(self.attn_blocks.parameters())
 )
 
-            opt_ae = torch.optim.Adam(params, lr=lr, betas=(0.5, 0.9))
+        opt_ae = torch.optim.Adam(params, lr=lr, betas=(0.5, 0.9))
 
         opt_disc = torch.optim.Adam(self.loss.discriminator.parameters(), lr=lr, betas=(0.5, 0.9))
         return [opt_ae, opt_disc], []
 
-    def get_last_layer(self):
-        return self.decoder.conv_out.weight
 
     def log_images(self, batch, **kwargs):
         log = dict()
@@ -373,16 +323,10 @@ class VQModel(pl.LightningModule):
 
        
         x_tar = x_tar.to(self.device)
-        if self.stage == 1: 
-            y = None
-            src_idx=None
-            input=x_tar
+
         xrec, _ = self(input, y,src_idx)
 
         log["source"] = input
         log["target"] = x_tar
-        if self.stage == 1: 
-            log["recon"] = xrec
-        else:
-            log[f"recon_{batch['sources_list']}_to_{target}"] = xrec
+        log[f"recon_{batch['sources_list']}_to_{target}"] = xrec
         return log                                         
