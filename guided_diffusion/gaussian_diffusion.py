@@ -1107,14 +1107,14 @@ class GaussianDiffusion:
             else:
                 print("This contrast can't be synthesized.")
 
-            # Concatenate conditions along the channel dimension
+            print("in shape:", cond_1.shape)
             LLL, LLH, LHL, LHH, HLL, HLH, HHL, HHH = dwt(cond_1)
             cond_dwt = th.cat([LLL / 3., LLH, LHL, LHH, HLL, HLH, HHL, HHH], dim=1)
             LLL, LLH, LHL, LHH, HLL, HLH, HHL, HHH = dwt(cond_2)
             cond_dwt = th.cat([cond_dwt, LLL / 3., LLH, LHL, LHH, HLL, HLH, HHL, HHH], dim=1)
             LLL, LLH, LHL, LHH, HLL, HLH, HHL, HHH = dwt(cond_3)
             cond_dwt = th.cat([cond_dwt, LLL / 3., LLH, LHL, LHH, HLL, HLH, HHL, HHH], dim=1)
-
+            print("in cond shape:", cond_dwt.shape)
         # Wavelet transform the input image
         LLL, LLH, LHL, LHH, HLL, HLH, HHL, HHH = dwt(target)
         x_start_dwt = th.cat([LLL / 3., LLH, LHL, LHH, HLL, HLH, HHL, HHH], dim=1)

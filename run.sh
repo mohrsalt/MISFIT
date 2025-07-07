@@ -1,5 +1,5 @@
 # general settings
-GPU=0,1,2,3                    # gpu to use
+GPU=4,5,6,7                    # gpu to use
 SEED=42;                  # randomness seed for sampling
 CHANNELS=64;              # number of model base channels (we use 64 for all experiments)
 MODE='train';             # train, sample, auto (for automatic missing contrast generation)
