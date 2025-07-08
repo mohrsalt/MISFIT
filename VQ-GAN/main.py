@@ -434,7 +434,7 @@ if __name__ == "__main__":
         trainer_config = lightning_config.get("trainer", OmegaConf.create())
         # default to ddp
         trainer_config["distributed_backend"] = "ddp"
-        trainer_config["gpus"] = 4
+        trainer_config["gpus"] = 8
         trainer_config["accelerator"]="gpu"
         trainer_config["strategy"] = "ddp"
         for k in nondefault_trainer_args(opt):
