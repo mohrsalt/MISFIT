@@ -38,7 +38,7 @@ def get_transforms(phase="train"):
                     roi_size=(224, 224, 160),
                     allow_missing_keys=True
                 ),
-            transforms.ScaleIntensityRangePercentilesd(keys=modalities, lower=0.1, upper=99.9, b_min=None, b_max=None, allow_missing_keys=True),
+            transforms.ScaleIntensityRangePercentilesd(keys=modalities, lower=0.1, upper=99.9, b_min=-1, b_max=1, allow_missing_keys=True),
             train_transforms if phase == "train" else transforms.Compose([])
         ]
     )
