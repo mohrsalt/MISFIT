@@ -540,7 +540,7 @@ if __name__ == "__main__":
         from pytorch_lightning.strategies import DDPStrategy
         # ➕ Add bf16 mixed-precision support
         trainer_kwargs["precision"] = "bf16-mixed"
-        trainer_kwargs["max_epochs"] = 500
+        trainer_kwargs["max_epochs"] = 1000
         trainer = Trainer(**trainer_kwargs,
                                              strategy=DDPStrategy(find_unused_parameters=True),)
 
