@@ -1,5 +1,5 @@
 model:
-  base_learning_rate: 2e-5*0.1
+  base_learning_rate: 2e-6
   target: taming.models.vqgan.VQModel
   params:
     num_classes: 4
