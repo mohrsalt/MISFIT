@@ -99,4 +99,4 @@ class SPADEGenerator(nn.Module):
     def forward(self, x, y):
         for block in self.block:
             x = block(x, y)
-        return x
+        return torch.clamp(x, -1., 1.)
