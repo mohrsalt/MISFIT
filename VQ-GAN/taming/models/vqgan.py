@@ -83,6 +83,8 @@ class VQModel(pl.LightningModule):
     def encode(self, in_image):
             LLL, LLH, LHL, LHH, HLL, HLH, HHL, HHH = dwt(in_image)
             dwt_image = torch.cat([LLL / 3., LLH, LHL, LHH, HLL, HLH, HHL, HHH], dim=1)
+            dwt_image = torch.clamp(dwt_image, -1., 1.)
+
             return dwt_image
     
     def decode(self, model_output):
@@ -223,7 +225,7 @@ class VQModel(pl.LightningModule):
         )
   
         self.manual_backward(aeloss)
-
+        torch.nn.utils.clip_grad_norm_(self.parameters(), 1.0)
         opt_ae.step()
  
         self.log("train/aeloss", aeloss, prog_bar=True, logger=True, on_step=True, on_epoch=True)
@@ -236,6 +238,7 @@ class VQModel(pl.LightningModule):
             last_layer=None, label=y, split="train"
         )
         self.manual_backward(discloss)
+        torch.nn.utils.clip_grad_norm_(self.loss.discriminator.parameters(), 1.0)
         opt_disc.step()
 
         self.log("train/discloss", discloss, prog_bar=True, logger=True, on_step=True, on_epoch=True)
