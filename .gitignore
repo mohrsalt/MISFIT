@@ -7,7 +7,7 @@ __pycache__/
 ./data/
 ./results/
 ./runs/
-
+./VQ-GAN/logs/
 # C extensions
 *.so
 
