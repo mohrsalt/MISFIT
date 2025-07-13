@@ -87,6 +87,13 @@ class VQModel(pl.LightningModule):
 
             return dwt_image
     
+    def encode_noclamp(self, in_image):
+            LLL, LLH, LHL, LHH, HLL, HLH, HHL, HHH = dwt(in_image)
+            dwt_image = torch.cat([LLL / 3., LLH, LHL, LHH, HLL, HLH, HHL, HHH], dim=1)
+            
+
+            return dwt_image
+    
     def decode(self, model_output):
         B, _, H, W, D = model_output.size()
         model_output_idwt = idwt(model_output[:, 0, :, :, :].view(B, 1, H, W, D) * 3.,

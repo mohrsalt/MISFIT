@@ -1087,8 +1087,9 @@ class GaussianDiffusion:
 
             # Wavelet transform the input image
             x_tar = x_start["target"]
-            x_start_dwt = vqmodel.encode(x_tar)
-            
+            # x_start_dwt = vqmodel.encode(x_tar)
+            x_start_dwt = vqmodel.encode_noclamp(x_tar)
+
         vqmodel.to('cpu')
         torch.cuda.empty_cache()
 
@@ -1097,7 +1098,7 @@ class GaussianDiffusion:
         noise = th.randn_like(x_tar)  # Sample noise - original image resolution.
         LLL, LLH, LHL, LHH, HLL, HLH, HHL, HHH = dwt(noise)
         noise_dwt = th.cat([LLL, LLH, LHL, LHH, HLL, HLH, HHL, HHH], dim=1)  # Wavelet transformed noise
-        noise_dwt = noise_dwt.clamp(-1., 1.) 
+        # noise_dwt = noise_dwt.clamp(-1., 1.) 
         x_t = self.q_sample(x_start_dwt, t, noise=noise_dwt)  # Sample x_t
 
         if mode == 'i2i':
