@@ -70,14 +70,14 @@ def main():
     vq_model_config = vq_config["model"]["params"]
     vq_model_config["lossconfig"] = None  # Or use Identity if needed
 
-    vq_model = VQModel(**vq_model_config, ckpt_path="/Users/mohorbanerjee/cwdm_last/vqgan_checkpoint.ckpt")
+    vq_model = VQModel(**vq_model_config, ckpt_path="/home/users/ntu/mohor001/scratch/Task8DataBrats/vqgan_checkpoint.ckpt")
 
     vq_model.eval()
     
     # logger.log("Number of trainable parameters: {}".format(np.array([np.array(p.shape).prod() for p in model.parameters()]).sum()))
    # model.to(dist_util.dev([0, 1,2,3]) if len(args.devices) > 1 else dist_util.dev())  # allow for 2 devices
     schedule_sampler = create_named_schedule_sampler(args.schedule_sampler, diffusion,  maxt=1000)
-    data_path_train= ["/home/Mohor.Banerjee@mbzuai.ac.ae/Task8DataBrats/ASNR-MICCAI-BraTS2023-GLI-Challenge-TrainingData", "/home/Mohor.Banerjee@mbzuai.ac.ae/Task8DataBrats/ASNR-MICCAI-BraTS2023-MET-Challenge-TrainingData", "/home/Mohor.Banerjee@mbzuai.ac.ae/Task8DataBrats/ASNR-MICCAI-BraTS2023-MET-Challenge-TrainingData_Additional"] # to be filled
+    data_path_train= ["/home/users/ntu/mohor001/scratch/Task8DataBrats/ASNR-MICCAI-BraTS2023-GLI-Challenge-TrainingData", "/home/users/ntu/mohor001/scratch/Task8DataBrats/ASNR-MICCAI-BraTS2023-MET-Challenge-TrainingData", "/home/users/ntu/mohor001/scratch/Task8DataBrats/ASNR-MICCAI-BraTS2023-MET-Challenge-TrainingData_Additional"] # to be filled
 
 
     ds_train = BraTS2021Train(data_path_train)
