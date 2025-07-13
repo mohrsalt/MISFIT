@@ -1,3 +1,0 @@
-Logging to runs/Jul13_20-48-15_x1000c2s7b0n1
-['0', ',', '1', ',', '2', ',', '3']
-Creating model and diffusion...
