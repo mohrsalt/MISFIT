@@ -4,7 +4,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import pytorch_lightning as pl
 import copy
-from main import instantiate_from_config
+#from main import instantiate_from_config
 
 from taming.models.normalization import SPADEGenerator
 
@@ -48,7 +48,7 @@ class VQModel(pl.LightningModule):
 
         self.image_key = image_key
         if lossconfig is not None:
-            self.loss = instantiate_from_config(lossconfig)
+            self.loss = None
 
 
         self.attn_blocks = nn.ModuleList([CHattnblock(8) for i in range(4)]) #new

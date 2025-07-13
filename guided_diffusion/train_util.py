@@ -88,7 +88,7 @@ class TrainLoop:
         lr_anneal_steps=200
         model = model.to(device)
         self.model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[device.index])
-        vqmodel = vqmodel.to(device)
+#        vqmodel = vqmodel.to(device)
         self.vqmodel=vqmodel
         self.diffusion = diffusion
         self.datal = data
@@ -195,8 +195,8 @@ class TrainLoop:
                 batch['source'] = batch['source'].to(dist_util.dev())
                 batch['target'] = batch['target'].to(dist_util.dev())
                 batch['target_class'] = batch['target_class'].to(dist_util.dev())
-                batch['sources_list'] = batch['sources_list'].to(dist_util.dev())
-                batch['t_list'] = batch['t_list'].to(dist_util.dev())
+                #batch['sources_list'] = batch['sources_list'].to(dist_util.dev())
+                #batch['t_list'] = batch['t_list'].to(dist_util.dev())
             else:
                 batch = batch.to(dist_util.dev())
 

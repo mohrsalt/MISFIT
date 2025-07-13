@@ -1,16 +1,9 @@
-#!/bin/bash
-# Exercise 2 submission script - submit.sh
-# Below, is the queue
-#PBS -q normal
-#PBS -j oe
-#PBS -l select=1:ncpus=16:ngpus=4
-#PBS -l walltime=01:00:00
-#PBS -N god
+
 module load miniforge3
 
 export CUDA_VISIBLE_DEVICES=0,1,2,3
 conda activate vqgan
-cd cwdm-modified
+
 # general settings
 GPU=0,1,2,3                    # gpu to use
 SEED=42;                  # randomness seed for sampling

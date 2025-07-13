@@ -63,14 +63,14 @@ def main():
     logger.log("Creating model and diffusion...")
     arguments = args_to_dict(args, model_and_diffusion_defaults().keys())
     model, diffusion = create_model_and_diffusion(**arguments)
-    with open("/Users/mohorbanerjee/cwdm_last/scripts/vqgan_config.yaml", "r") as f:
+    with open("/home/users/ntu/mohor001/cwdm-modified/scripts/vqgan_config.yaml", "r") as f:
         vq_config = yaml.safe_load(f)
 
 
     vq_model_config = vq_config["model"]["params"]
     vq_model_config["lossconfig"] = None  # Or use Identity if needed
 
-    vq_model = VQModel(**vq_model_config, ckpt_path="/home/users/ntu/mohor001/scratch/Task8DataBrats/vqgan_checkpoint.ckpt")
+    vq_model = VQModel(**vq_model_config, ckpt_path="/home/users/ntu/mohor001/scratch/vqgan_checkpoint.ckpt")
 
     vq_model.eval()
     

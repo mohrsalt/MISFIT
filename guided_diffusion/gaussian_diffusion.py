@@ -1072,10 +1072,8 @@ class GaussianDiffusion:
             pass to the model. This can be used for conditioning.
         :param noise: if specified, the specific Gaussian noise to try to remove.
         :param labels: must be specified for mode='segmentation'
-        :param mode:  can be default (image generation), segmentation
-        :return: a dict with the key "loss" containing a tensor of shape [N].
-                 Some mean or variance settings may also have other keys.
-        """
+        :param mode:  can be default (image generation), segmentation"""
+        v
         if model_kwargs is None:
             model_kwargs = {}
 
