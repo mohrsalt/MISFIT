@@ -1083,7 +1083,11 @@ class GaussianDiffusion:
                 src_idx=vqmodel.modalities_to_indices(x_start["sources_list"])
                 input=x_start["source"]
                 y = x_start["target_class"].long()
+                h1=self.encode_noclamp(input[:,0].unsqueeze(1)) #(1,8,112,112,80)
+                h2=self.encode_noclamp(input[:,1].unsqueeze(1))
+                h3=self.encode_noclamp(input[:,2].unsqueeze(1))
                 cond_dwt=vqmodel.forward_latent(input, y,src_idx)
+                cond_dwt= th.cat([cond_dwt,h1,h2,h3], dim=1)
 
             # Wavelet transform the input image
             x_tar = x_start["target"]
