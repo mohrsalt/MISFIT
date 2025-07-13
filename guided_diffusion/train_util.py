@@ -66,7 +66,8 @@ class TrainLoop:
         lr,
         ema_rate,
         log_interval,
-        contr,
+        # contr,
+        vqmodel,
         save_interval,
         resume_checkpoint,
         resume_step,
@@ -87,6 +88,8 @@ class TrainLoop:
         lr_anneal_steps=200
         model = model.to(device)
         self.model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[device.index])
+        vqmodel = vqmodel.to(device)
+        self.vqmodel=vqmodel
         self.diffusion = diffusion
         self.datal = data
         self.dataset = dataset
@@ -94,7 +97,7 @@ class TrainLoop:
         self.batch_size = batch_size
         self.in_channels = in_channels
         self.image_size = image_size
-        self.contr = contr
+        # self.contr = contr
         self.microbatch = microbatch if microbatch > 0 else batch_size
         self.lr = lr
         self.ema_rate = (
@@ -189,6 +192,11 @@ class TrainLoop:
                 batch['t1c'] = batch['t1c'].to(dist_util.dev())
                 batch['t2w'] = batch['t2w'].to(dist_util.dev())
                 batch['t2f'] = batch['t2f'].to(dist_util.dev())
+                batch['source'] = batch['source'].to(dist_util.dev())
+                batch['target'] = batch['target'].to(dist_util.dev())
+                batch['target_class'] = batch['target_class'].to(dist_util.dev())
+                batch['sources_list'] = batch['sources_list'].to(dist_util.dev())
+                batch['t_list'] = batch['t_list'].to(dist_util.dev())
             else:
                 batch = batch.to(dist_util.dev())
 
@@ -218,26 +226,6 @@ class TrainLoop:
                     midplane = sample[0, ch, :, :, image_size // 2]
                     self.summary_writer.add_image('sample/{}'.format(names[ch]), midplane.unsqueeze(0),
                                                   global_step=self.step + self.resume_step)
-
-                if self.mode == 'i2i':
-                    if not self.contr == 't1n':
-                        image_size = batch['t1n'].size()[2]
-                        midplane = batch['t1n'][0, 0, :, :, image_size // 2]
-                        self.summary_writer.add_image('source/t1n', midplane.unsqueeze(0),
-                                                      global_step=self.step + self.resume_step)
-                    if not self.contr == 't1c':
-                        image_size = batch['t1c'].size()[2]
-                        midplane = batch['t1c'][0, 0, :, :, image_size // 2]
-                        self.summary_writer.add_image('source/t1c', midplane.unsqueeze(0),
-                                                      global_step=self.step + self.resume_step)
-                    if not self.contr == 't2w':
-                        midplane = batch['t2w'][0, 0, :, :, image_size // 2]
-                        self.summary_writer.add_image('source/t2w', midplane.unsqueeze(0),
-                                                      global_step=self.step + self.resume_step)
-                    if not self.contr == 't2f':
-                        midplane = batch['t2f'][0, 0, :, :, image_size // 2]
-                        self.summary_writer.add_image('source/t2f', midplane.unsqueeze(0),
-                                                      global_step=self.step + self.resume_step)
 
 
             if self.step % self.log_interval == 0:
@@ -302,7 +290,8 @@ class TrainLoop:
                                            model_kwargs=cond,
                                            labels=label,
                                            mode=self.mode,
-                                           contr=self.contr
+                                           vqmodel=self.vqmodel
+                                        #    contr=self.contr
                                            )
         losses1 = compute_losses()
 

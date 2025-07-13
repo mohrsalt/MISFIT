@@ -1,0 +1,25 @@
+model:
+  base_learning_rate: 2e-6
+  target: taming.models.vqgan.VQModel
+  params:
+    num_classes: 4
+
+    stage: 2
+    embed_dim: 4
+    n_embed: 8192
+    ddconfig:
+      double_z: False
+      z_channels: 8
+      resolution: 192
+      in_channels: 1
+      out_ch: 1
+      ch: 64
+      num_groups: 32
+      ch_mult:
+      - 1
+      - 1
+      - 2
+      num_res_blocks: 1
+      attn_resolutions: []
+      dropout: 0.0
+

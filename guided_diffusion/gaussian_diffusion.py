@@ -1061,8 +1061,8 @@ class GaussianDiffusion:
         output = th.where((t == 0), decoder_nll, kl)
         return {"output": output, "pred_xstart": out["pred_xstart"]}
 
-    def training_losses(self, model,  x_start, t, classifier=None, model_kwargs=None, noise=None, labels=None,
-                        mode='default', contr='t1n'):
+    def training_losses(self, model,  x_start, t, vqmodel,classifier=None, model_kwargs=None, noise=None, labels=None,
+                        mode='default'):
         """
         Compute training losses for a single timestep.
         :param model: the model to evaluate loss on.
