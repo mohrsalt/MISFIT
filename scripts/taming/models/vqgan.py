@@ -193,7 +193,7 @@ class VQModel(pl.LightningModule):
         batched_choices = torch.tensor(choices)
         batched_choices=batched_choices.T
 
-        print("batch shape ",batched_choices.shape)
+        #print("batch shape ",batched_choices.shape)
         return batched_choices
 
 
