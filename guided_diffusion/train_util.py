@@ -82,6 +82,7 @@ class TrainLoop:
         loss_level='image',
     ):
         device, local_rank = setup_ddp()
+        self.devicerank=device
         self.summary_writer = summary_writer
         self.mode = mode
         print(device)
@@ -290,7 +291,8 @@ class TrainLoop:
                                            model_kwargs=cond,
                                            labels=label,
                                            mode=self.mode,
-                                           vqmodel=self.vqmodel
+                                           vqmodel=self.vqmodel,
+                                           device=self.devicerank
                                         #    contr=self.contr
                                            )
         losses1 = compute_losses()

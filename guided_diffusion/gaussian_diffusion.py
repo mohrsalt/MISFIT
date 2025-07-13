@@ -1061,7 +1061,7 @@ class GaussianDiffusion:
         output = th.where((t == 0), decoder_nll, kl)
         return {"output": output, "pred_xstart": out["pred_xstart"]}
 
-    def training_losses(self, model,  x_start, t, vqmodel,classifier=None, model_kwargs=None, noise=None, labels=None,
+    def training_losses(self, model,  x_start, t, vqmodel,device,classifier=None, model_kwargs=None, noise=None, labels=None,
                         mode='default'):
         """
         Compute training losses for a single timestep.
@@ -1073,19 +1073,25 @@ class GaussianDiffusion:
         :param noise: if specified, the specific Gaussian noise to try to remove.
         :param labels: must be specified for mode='segmentation'
         :param mode:  can be default (image generation), segmentation"""
-        v
-        if model_kwargs is None:
-            model_kwargs = {}
+        vqmodel=vqmodel.to(device)
+        with torch.no_grad():
+            vqmodel.eval()
+            if model_kwargs is None:
+                model_kwargs = {}
 
-        elif mode == 'i2i':
-            src_idx=vqmodel.modalities_to_indices(x_start["sources_list"])
-            input=x_start["source"]
-            y = x_start["target_class"].long()
-            cond_dwt=vqmodel.forward_latent(input, y,src_idx)
+            elif mode == 'i2i':
+                src_idx=vqmodel.modalities_to_indices(x_start["sources_list"])
+                input=x_start["source"]
+                y = x_start["target_class"].long()
+                cond_dwt=vqmodel.forward_latent(input, y,src_idx)
 
-        # Wavelet transform the input image
-        x_tar = x_start["target"]
-        x_start_dwt = vqmodel.encode(x_tar)
+            # Wavelet transform the input image
+            x_tar = x_start["target"]
+            x_start_dwt = vqmodel.encode(x_tar)
+            
+        vqmodel.to('cpu')
+        torch.cuda.empty_cache()
+
 
 
         noise = th.randn_like(x_tar)  # Sample noise - original image resolution.
