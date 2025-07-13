@@ -326,7 +326,7 @@ class GaussianDiffusion:
                               x[:, 6, :, :, :].view(B, 1, H, W, D),
                               x[:, 7, :, :, :].view(B, 1, H, W, D))
 
-                x_idwt_clamp = x_idwt.clamp(0., 1.)
+                x_idwt_clamp = x_idwt.clamp(-1., 1.)
 
                 LLL, LLH, LHL, LHH, HLL, HLH, HHL, HHH = dwt(x_idwt_clamp)
                 x = th.cat([LLL / 3., LLH, LHL, LHH, HLL, HLH, HHL, HHH], dim=1)
@@ -1080,49 +1080,20 @@ class GaussianDiffusion:
             model_kwargs = {}
 
         elif mode == 'i2i':
-            if contr == 't1n':
-                target = x_start['t1n']  # target
-                cond_1 = x_start['t1c']  # condition
-                cond_2 = x_start['t2w']  # condition
-                cond_3 = x_start['t2f']  # condition
+            src_idx=vqmodel.modalities_to_indices(x_start["sources_list"])
+            input=x_start["source"]
+            y = x_start["target_class"].long()
+            cond_dwt=vqmodel.forward_latent(input, y,src_idx)
 
-            elif contr == 't1c':
-                target = x_start['t1c']  # target
-                cond_1 = x_start['t1n']  # condition
-                cond_2 = x_start['t2w']  # condition
-                cond_3 = x_start['t2f']  # condition
-
-            elif contr == 't2w':
-                target = x_start['t2w']  # target
-                cond_1 = x_start['t1n']  # condition
-                cond_2 = x_start['t1c']  # condition
-                cond_3 = x_start['t2f']  # condition
-
-            elif contr == 't2f':
-                target = x_start['t2f']  # target
-                cond_1 = x_start['t1n']  # condition
-                cond_2 = x_start['t1c']  # condition
-                cond_3 = x_start['t2w']  # condition
-
-            else:
-                print("This contrast can't be synthesized.")
-
-            print("in shape:", cond_1.shape)
-            LLL, LLH, LHL, LHH, HLL, HLH, HHL, HHH = dwt(cond_1)
-            cond_dwt = th.cat([LLL / 3., LLH, LHL, LHH, HLL, HLH, HHL, HHH], dim=1)
-            LLL, LLH, LHL, LHH, HLL, HLH, HHL, HHH = dwt(cond_2)
-            cond_dwt = th.cat([cond_dwt, LLL / 3., LLH, LHL, LHH, HLL, HLH, HHL, HHH], dim=1)
-            LLL, LLH, LHL, LHH, HLL, HLH, HHL, HHH = dwt(cond_3)
-            cond_dwt = th.cat([cond_dwt, LLL / 3., LLH, LHL, LHH, HLL, HLH, HHL, HHH], dim=1)
-            print("in cond shape:", cond_dwt.shape)
         # Wavelet transform the input image
-        LLL, LLH, LHL, LHH, HLL, HLH, HHL, HHH = dwt(target)
-        x_start_dwt = th.cat([LLL / 3., LLH, LHL, LHH, HLL, HLH, HHL, HHH], dim=1)
+        x_tar = x_start["target"]
+        x_start_dwt = vqmodel.encode(x_tar)
 
 
-        noise = th.randn_like(target)  # Sample noise - original image resolution.
+        noise = th.randn_like(x_tar)  # Sample noise - original image resolution.
         LLL, LLH, LHL, LHH, HLL, HLH, HHL, HHH = dwt(noise)
         noise_dwt = th.cat([LLL, LLH, LHL, LHH, HLL, HLH, HHL, HHH], dim=1)  # Wavelet transformed noise
+        noise_dwt = noise_dwt.clamp(-1., 1.) 
         x_t = self.q_sample(x_start_dwt, t, noise=noise_dwt)  # Sample x_t
 
         if mode == 'i2i':
