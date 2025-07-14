@@ -86,7 +86,7 @@ class TrainLoop:
         self.summary_writer = summary_writer
         self.mode = mode
         print(device)
-        lr_anneal_steps=1000
+        lr_anneal_steps=150000
         model = model.to(device)
         self.model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[device.index])
 #        vqmodel = vqmodel.to(device)
