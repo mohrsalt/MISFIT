@@ -87,6 +87,7 @@ def get_brats_dataset(data_paths, csv_path=None, phase="train"):
             target_modality, target_pathname, source_modalities = next(((m, path,[k for k in all_modalities if k != m])
                                                     for m, path in all_modalities.items()
                                                     if os.path.basename(path).startswith("Missing_Target_")), (None, None, []))
+            header_path=glob.glob(os.path.join(sub_path, f"{subject}-{source_modalities[0]}.nii.gz"))[0]
 
             data.append({
                 "t1n": t1n,
@@ -96,7 +97,7 @@ def get_brats_dataset(data_paths, csv_path=None, phase="train"):
                 "target_modality":target_modality,
                 "source_modalities":source_modalities,
                 "target_pathname": target_pathname,
-              
+                "header_path":header_path,
                 "subject_id": subject,
                 "path": t1n
             })

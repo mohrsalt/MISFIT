@@ -132,10 +132,9 @@ def main():
             cond= th.cat([cond_dwt,h1,h2,h3], dim=1)
 
 
-        if missing_target=="t1n":
-            header = nib.load(batch['t1c'][0]).header
-        else:
-            header = nib.load(batch['t1n'][0]).header
+        
+        header = nib.load(batch['header_path'][0]).header
+
             
         vq_model.to('cpu')
         th.cuda.empty_cache()
