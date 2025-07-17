@@ -15,9 +15,9 @@ from skimage.metrics import peak_signal_noise_ratio as psnr
 import torch as th
 import torch.nn.functional as F
 import yaml
-from scripts.taming.models.vqgan import VQModel
-sys.path.append(".")
 
+sys.path.append(".")
+from scripts.taming.models.vqgan import VQModel
 from guided_diffusion import (dist_util,
                               logger)
 from brats import BraTS2021Test
