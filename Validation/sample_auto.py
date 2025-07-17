@@ -189,6 +189,8 @@ def main():
             ss= ssim(input_image, output)
             ssim_list.append(ss)
             print(ss)
+            input_image = input_image.unsqueeze(0).unsqueeze(0)  # Now shape is [1, 1, H, W, D]
+            output = output.unsqueeze(0).unsqueeze(0)
             ps= get_psnr(input_image, output , data_range=output.max() - output.min())
             psnr_list.append(ps)
             print(ps)
