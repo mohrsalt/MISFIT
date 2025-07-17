@@ -69,7 +69,7 @@ class GeneratedToTargetDataset(Dataset):
 
 # === Main Training ===
 def train():
-    pseudo_train_dir = '/home/Mohor.Banerjee@mbzuai.ac.ae/Task8DataBrats/pseudo_train_set'
+    pseudo_train_dir = '/home/users/ntu/mohor001/scratch/Task8DataBrats/pseudo_train_set'
     dataset = GeneratedToTargetDataset(pseudo_train_dir)
     loader = DataLoader(dataset, batch_size=1, shuffle=True)
 
