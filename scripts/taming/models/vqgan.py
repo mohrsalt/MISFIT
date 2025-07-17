@@ -6,7 +6,7 @@ import pytorch_lightning as pl
 import copy
 #from main import instantiate_from_config
 
-from taming.models.normalization import SPADEGenerator
+from scripts.taming.models.normalization import SPADEGenerator
 
 
 from DWT_IDWT.DWT_IDWT_layer import DWT_3D, IDWT_3D
