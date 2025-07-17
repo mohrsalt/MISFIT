@@ -11,16 +11,15 @@ import random
 import sys
 import torch as th
 import torch.nn.functional as F
-import yaml
-from scripts.taming.models.vqgan import VQModel
+
 sys.path.append(".")
-from ssim import ssim
+
 from guided_diffusion import (dist_util,
                               logger)
-from brats import BraTS2021Test
+from guided_diffusion.bratsloader import BRATSVolumes
 from guided_diffusion.script_util import (model_and_diffusion_defaults, create_model_and_diffusion,
                                           add_dict_to_argparser, args_to_dict)
-from DWT_IDWT.DWT_IDWT_layer import IDWT_3D
+from DWT_IDWT.DWT_IDWT_layer import IDWT_3D, DWT_3D
 
 def main():
     args = create_argparser().parse_args()
@@ -33,9 +32,12 @@ def main():
         **args_to_dict(args, model_and_diffusion_defaults().keys())
     )
     diffusion.mode = 'i2i'
+    logger.log("Load model from: {}".format(args.model_path))
+    model.load_state_dict(dist_util.load_state_dict(args.model_path, map_location="cpu"))
+    model.to(dist_util.dev([0, 1]) if len(args.devices) > 1 else dist_util.dev())  # allow for 2 devices
 
-    data_path_test=["/home/users/ntu/mohor001/scratch/Task8DataBrats/pseudo_val_set"]
-    ds = BraTS2021Test(data_path_test)
+    if args.dataset == 'brats':
+        ds = BRATSVolumes(args.data_dir, mode='eval')
 
     datal = th.utils.data.DataLoader(ds,
                                      batch_size=args.batch_size,
@@ -43,73 +45,56 @@ def main():
                                      shuffle=False,)
 
     model.eval()
-    with open("/home/users/ntu/mohor001/cwdm-modified/scripts/vqgan_config.yaml", "r") as f:
-        vq_config = yaml.safe_load(f)
-
-
-    vq_model_config = vq_config["model"]["params"]
-    vq_model_config["lossconfig"] = None  # Or use Identity if needed
-
-    vq_model = VQModel(**vq_model_config, ckpt_path="/home/users/ntu/mohor001/scratch/vqgan_checkpoint.ckpt")
-
-    vq_model.eval()
-
     idwt = IDWT_3D("haar")
-    
+    dwt = DWT_3D("haar")
 
     th.manual_seed(seed)
     np.random.seed(seed)
     random.seed(seed)
-    selected_model_path="/home/users/ntu/mohor001/scratch/cwchkpt/Jul14_07-40-32_x1000c0s0b0n0/checkpoints/brats_150000.pt"
-    logger.log("Load model from: {}".format(selected_model_path))
-    model.load_state_dict(dist_util.load_state_dict(selected_model_path, map_location="cpu"))
-    model.to(dist_util.dev([0, 1]) if len(args.devices) > 1 else dist_util.dev())  # allow for 2 devices
 
     for batch in iter(datal):
-        subject_name = batch['subject_id'][0] #start from here and also tweak .sh file
-        missing_target=batch['target_modality'][0]
-
-
-
-
         batch['t1n'] = batch['t1n'].to(dist_util.dev())
         batch['t1c'] = batch['t1c'].to(dist_util.dev())
         batch['t2w'] = batch['t2w'].to(dist_util.dev())
         batch['t2f'] = batch['t2f'].to(dist_util.dev())
-        batch['source'] = batch['source'].to(dist_util.dev())
-        batch['target'] = batch['target'].to(dist_util.dev())
-        batch['target_class'] = batch['target_class'].to(dist_util.dev())
 
+        subj = batch['subj'][0].split('validation/')[1][:19]
+        print(subj)
 
-        miss_name = args.data_dir + '/' + subject_name + '/' + subject_name +'-' + "generated"
-        print(miss_name)
+        if args.contr == 't1n':
+            target = batch['t1n']  # target
+            cond_1 = batch['t1c']  # condition
+            cond_2 = batch['t2w']  # condition
+            cond_3 = batch['t2f']  # condition
 
+        elif args.contr == 't1c':
+            target = batch['t1c']
+            cond_1 = batch['t1n']
+            cond_2 = batch['t2w']
+            cond_3 = batch['t2f']
 
+        elif args.contr == 't2w':
+            target = batch['t2w']
+            cond_1 = batch['t1n']
+            cond_2 = batch['t1c']
+            cond_3 = batch['t2f']
 
-        vq_model=vq_model.to(dist_util.dev())
-        with th.no_grad():
-            vq_model.eval()
-  
+        elif args.contr == 't2f':
+            target = batch['t2f']
+            cond_1 = batch['t1n']
+            cond_2 = batch['t1c']
+            cond_3 = batch['t2w']
 
-        
-            src_idx=vq_model.modalities_to_indices(batch["sources_list"])
-            input=batch["source"]
-            y = batch["target_class"].long()
-            h1=vq_model.encode_noclamp(input[:,0].unsqueeze(1)) #(1,8,112,112,80)
-            h2=vq_model.encode_noclamp(input[:,1].unsqueeze(1))
-            h3=vq_model.encode_noclamp(input[:,2].unsqueeze(1))
-            cond_dwt=vq_model.forward_latent(input, y,src_idx)
-            cond= th.cat([cond_dwt,h1,h2,h3], dim=1)
-
-
-        if missing_target=="t1n":
-            header = nib.load(batch['t1c'][0]).header
         else:
-            header = nib.load(batch['t1n'][0]).header
-            
-        vq_model.to('cpu')
-        th.cuda.empty_cache()
+            print("This contrast can't be synthesized.")
 
+        # Conditioning vector
+        LLL, LLH, LHL, LHH, HLL, HLH, HHL, HHH = dwt(cond_1)
+        cond = th.cat([LLL / 3., LLH, LHL, LHH, HLL, HLH, HHL, HHH], dim=1)
+        LLL, LLH, LHL, LHH, HLL, HLH, HHL, HHH = dwt(cond_2)
+        cond = th.cat([cond, LLL / 3., LLH, LHL, LHH, HLL, HLH, HHL, HHH], dim=1)
+        LLL, LLH, LHL, LHH, HLL, HLH, HHL, HHH = dwt(cond_3)
+        cond = th.cat([cond, LLL / 3., LLH, LHL, LHH, HLL, HLH, HHL, HHH], dim=1)
 
         # Noise
         noise = th.randn(args.batch_size, 8, 112, 112, 80).to(dist_util.dev())
@@ -135,30 +120,33 @@ def main():
                       sample[:, 6, :, :, :].view(B, 1, D, H, W),
                       sample[:, 7, :, :, :].view(B, 1, D, H, W))
 
-        sample[sample <= 0.04] = 0
+        sample[sample <= 0] = 0
+        sample[sample >= 1] = 1
+        sample[cond_1 == 0] = 0 # Zero out all non-brain parts
 
         if len(sample.shape) == 5:
             sample = sample.squeeze(dim=1)  # don't squeeze batch dimension for bs 1
 
         # Pad/Crop to original resolution
-        pad_sample = F.pad(sample, (0, 0, 8, 8, 8, 8), mode='constant', value=0)
-        sample = pad_sample[:, :, :, :155]
+        sample = sample[:, :, :, :155]
 
+        if len(target.shape) == 5:
+            target = target.squeeze(dim=1)
 
+        target = target[:, :, :, :155]
 
-
+        pathlib.Path(args.output_dir).mkdir(parents=True, exist_ok=True)
+        pathlib.Path(os.path.join(args.output_dir, subj)).mkdir(parents=True, exist_ok=True)
 
         for i in range(sample.shape[0]):
-            output_name = miss_name +'.nii.gz'
-            img = nib.Nifti1Image(sample.detach().cpu().numpy()[i, :, :, :], None, header)
+            output_name = os.path.join(args.output_dir, subj, 'sample.nii.gz')
+            img = nib.Nifti1Image(sample.detach().cpu().numpy()[i, :, :, :], np.eye(4))
             nib.save(img=img, filename=output_name)
             print(f'Saved to {output_name}')
-        
-        for b in range(batch.shape[0]):
-            ssim(batch["target_pathname"][b],output_name,batch["seg_path"][b])
 
-
-
+            output_name = os.path.join(args.output_dir, subj, 'target.nii.gz')
+            img = nib.Nifti1Image(target.detach().cpu().numpy()[i, :, :, :], np.eye(4))
+            nib.save(img=img, filename=output_name)
 
 def create_argparser():
     defaults = dict(
@@ -189,6 +177,7 @@ def create_argparser():
 
 if __name__ == "__main__":
     main()
+
 
 
 

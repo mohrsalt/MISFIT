@@ -8,7 +8,7 @@ from omegaconf import ListConfig
 from monai import transforms
 from monai.data import Dataset as MonaiDataset
 
-
+import glob
 def get_transforms(phase="train"):
     modalities = ["t1n", "t1c", "t2w", "t2f"]
 
@@ -78,16 +78,25 @@ def get_brats_dataset(data_paths, csv_path=None, phase="train"):
             if not os.path.exists(sub_path):
                 continue
 
-            t1n = os.path.join(sub_path, f"{subject}-t1n.nii.gz")
-            t1c = os.path.join(sub_path, f"{subject}-t1c.nii.gz")
-            t2w = os.path.join(sub_path, f"{subject}-t2w.nii.gz")
-            t2f = os.path.join(sub_path, f"{subject}-t2f.nii.gz")
+            t1n = glob.glob(os.path.join(sub_path, f"*{subject}-t1n.nii.gz"))[0]
+            t1c = glob.glob(os.path.join(sub_path, f"*{subject}-t1c.nii.gz"))[0]
+            t2w = glob.glob(os.path.join(sub_path, f"*{subject}-t2w.nii.gz"))[0]
+            t2f = glob.glob(os.path.join(sub_path, f"*{subject}-t2f.nii.gz"))[0]
+            seg = glob.glob(os.path.join(sub_path, f"*{subject}-seg.nii.gz"))[0]
+            all_modalities = {'t1n': t1n, 't1c': t1c, 't2w': t2w, 't2f': t2f}
+            target_modality, target_pathname, source_modalities = next(((m, path,[k for k in all_modalities if k != m])
+                                                    for m, path in all_modalities.items()
+                                                    if os.path.basename(path).startswith("Missing_Target_")), (None, None, []))
 
             data.append({
                 "t1n": t1n,
                 "t1c": t1c,
                 "t2w": t2w,
                 "t2f": t2f,
+                "target_modality":target_modality,
+                "source_modalities":source_modalities,
+                "target_pathname": target_pathname,
+                "seg_path": seg,
                 "subject_id": subject,
                 "path": t1n
             })
@@ -152,3 +161,24 @@ class BraTS2021Test(BraTSbase):
     def __init__(self, data_path, csv_path=None, phase="test", source=None, target=None):
         super().__init__()
         self.data = get_brats_dataset(data_path, csv_path, phase)
+    
+    def __getitem__(self, i):
+        item = dict(self.data[i])
+
+       
+        target = item["target_modality"]
+        source = item["source_modalities"]
+
+        x_tar = item[target]
+        x_src_1 = item[source[0]]
+        x_src_2 = item[source[1]]
+        x_src_3 = item[source[2]]
+        input=torch.concat([x_src_1,x_src_2,x_src_3],dim=0) #check axis
+        item["source"] = input
+        item["target"] = x_tar
+        item["target_class"] = torch.tensor(self.modalities.index(target))
+        item["sources_list"]=source
+        
+        item["t_list"]=target
+
+        return item

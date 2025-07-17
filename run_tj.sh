@@ -3,19 +3,19 @@
 # Below, is the queue
 #PBS -q normal
 #PBS -j oe
-#PBS -l select=1:ncpus=16:ngpus=4
-#PBS -l walltime=72:00:00
+#PBS -l select=1:ncpus=16:ngpus=1
+#PBS -l walltime=1:00:00
 #PBS -N god
 module load miniforge3
 
-export CUDA_VISIBLE_DEVICES=0,1,2,3
+export CUDA_VISIBLE_DEVICES=0
 conda activate vqgan
 cd cwdm-modified
 # general settings
-GPU=0,1,2,3                    # gpu to use
+GPU=0                   # gpu to use
 SEED=42;                  # randomness seed for sampling
 CHANNELS=64;              # number of model base channels (we use 64 for all experiments)
-MODE='train';             # train, sample, auto (for automatic missing contrast generation)
+MODE='auto';             # train, sample, auto (for automatic missing contrast generation)
 DATASET='brats';          # brats
 MODEL='unet';             # 'unet'
 CONTR='t1n'               # contrast to be generate by the network ('t1n', t1c', 't2w', 't2f') - just relevant during training
@@ -135,7 +135,7 @@ elif [[ $MODE == 'sample' ]]; then
   python scripts/sample.py $SAMPLE $COMMON;
 
 elif [[ $MODE == 'auto' ]]; then
-  python scripts/sample_auto.py $SAMPLE $COMMON;
+  python Validation/sample_auto.py $SAMPLE $COMMON;
 
 else
   echo "MODE NOT FOUND -> Check the supported modes again";
