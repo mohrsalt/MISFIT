@@ -26,6 +26,8 @@ from guided_diffusion.script_util import (model_and_diffusion_defaults, create_m
 from DWT_IDWT.DWT_IDWT_layer import IDWT_3D
 
 
+def strip_module_prefix(state_dict):
+    return {k.replace("module.", ""): v for k, v in state_dict.items()}
 
 def get_psnr(x, y, data_range):
     EPS = 1e-8
@@ -86,8 +88,11 @@ def main():
     random.seed(seed)
     selected_model_path="/home/users/ntu/mohor001/scratch/cwchkpt/Jul14_07-40-32_x1000c0s0b0n0/checkpoints/brats_150000.pt"
     logger.log("Load model from: {}".format(selected_model_path))
-    model.load_state_dict(dist_util.load_state_dict(selected_model_path, map_location="cpu"))
-    model.to(dist_util.dev([0, 1]) if len(args.devices) > 1 else dist_util.dev())  # allow for 2 devices
+    state_dict = th.load(selected_model_path, map_location="cpu")
+    state_dict = strip_module_prefix(state_dict)
+
+    model.load_state_dict(state_dict)
+
     ssim_list=[]
     psnr_list=[]
     for batch in iter(datal):
