@@ -139,7 +139,7 @@ def main():
         vq_model.to('cpu')
         th.cuda.empty_cache()
 
-
+        model.to(dist_util.dev())
         # Noise
         noise = th.randn(args.batch_size, 8, 112, 112, 80).to(dist_util.dev())
 
