@@ -183,11 +183,15 @@ def main():
             nib.save(img=img, filename=output_name)
             print(f'Saved to {output_name}')
         
-        for b in range(batch.shape[0]):
+        for b in range(sample.shape[0]):
             output=sample.detach().cpu().numpy()[b, :, :, :]
             input_image=batch["target"][b]
-            ssim_list.append(ssim(input_image, output))
-            psnr_list.append(get_psnr(input_image, output , data_range=output.max() - output.min()))
+            ss= ssim(input_image, output)
+            ssim_list.append(ss)
+            print(ss)
+            ps= get_psnr(input_image, output , data_range=output.max() - output.min())
+            psnr_list.append(ps)
+            print(ps)
         
     print(" average SSIM: ", np.mean(ssim_list))
     print(" average PSNR: ", np.mean(psnr_list))
