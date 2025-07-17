@@ -183,8 +183,10 @@ def main():
             with th.no_grad():
                 sharp = refine_net(inp)
             refined.append(sharp.squeeze(0))  # shape [1, D, H, W]
+        sample = th.stack(refined) 
+        sample = (sample - sample.min()) / (sample.max() - sample.min() + 1e-8)
+        sample = sample * (batch['target'].max() - batch['target'].min()) + batch['target'].min()
 
-        sample = th.stack(refined)  # shape [B, 1, D, H, W]
         sample = th.clamp(sample, min=0.0, max=sample.max())
 
 
