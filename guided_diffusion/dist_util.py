@@ -70,7 +70,7 @@ def dev(device_number=0):
 #            else:
 #                raise ValueError(f'requested device number {device_number} (0-indexed) but only {device_count} devices available')
 #    return th.device("cpu")
-    return torch.device("cuda", int(os.environ["LOCAL_RANK"]))
+    return torch.device("cuda", int(os.environ.get("LOCAL_RANK",0)))
 
 def load_state_dict(path, **kwargs):
     """
