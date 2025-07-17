@@ -5,13 +5,13 @@ import shutil
 
 # --- Input train directories ---
 train_dirs = [
-    '/home/Mohor.Banerjee@mbzuai.ac.ae/Task8DataBrats/ASNR-MICCAI-BraTS2023-GLI-Challenge-TrainingData',
-    '/home/Mohor.Banerjee@mbzuai.ac.ae/Task8DataBrats/ASNR-MICCAI-BraTS2023-MET-Challenge-TrainingData',
-    '/home/Mohor.Banerjee@mbzuai.ac.ae/Task8DataBrats/ASNR-MICCAI-BraTS2023-MET-Challenge-TrainingData_Additional'
+    '/home/users/ntu/mohor001/scratch/Task8DataBrats/ASNR-MICCAI-BraTS2023-GLI-Challenge-TrainingData',
+    '/home/users/ntu/mohor001/scratch/Task8DataBrats/ASNR-MICCAI-BraTS2023-MET-Challenge-TrainingData',
+    '/home/users/ntu/mohor001/scratch/Task8DataBrats/ASNR-MICCAI-BraTS2023-MET-Challenge-TrainingData_Additional'
 ]
 
 # --- Output pseudo-train folder ---
-pseudo_train_folder = '/home/Mohor.Banerjee@mbzuai.ac.ae/Task8DataBrats/pseudo_train_set'
+pseudo_train_folder = '/home/users/ntu/mohor001/scratch/Task8DataBrats/pseudo_train_set'
 os.makedirs(pseudo_train_folder, exist_ok=True)
 
 # --- Modalities ---
