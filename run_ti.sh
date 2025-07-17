@@ -59,7 +59,7 @@ elif [[ $MODE == 'auto' ]]; then
   echo "MODE: sampling in automatic mode (image-to-image translation)";
   if [[ $DATASET == 'brats' ]]; then
     echo "DATASET: BRATS";
-    DATA_DIR=./datasets/BRATS2023/pseudo_validation;
+    DATA_DIR=/home/users/ntu/mohor001/scratch/Task8DataBrats/pseudo_val_set;
   else
     echo "DATASET NOT FOUND -> Check the supported datasets again";
   fi
