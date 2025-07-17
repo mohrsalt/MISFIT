@@ -60,7 +60,7 @@ def main():
     )
     diffusion.mode = 'i2i'
 
-    data_path_test=["/home/users/ntu/mohor001/scratch/Task8DataBrats/pseudo_val_set"]
+    data_path_test=["/home/users/ntu/mohor001/scratch/Task8DataBrats/pseudo_train_set"]
     ds = BraTS2021Test(data_path_test)
 
     datal = th.utils.data.DataLoader(ds,
