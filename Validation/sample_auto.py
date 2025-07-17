@@ -185,7 +185,7 @@ def main():
         
         for b in range(sample.shape[0]):
             output=sample.detach().cpu().numpy()[b, :, :, :]
-            input_image= th.from_numpy(nib.load(batch["target_pathname"][b][0]).get_fdata()).float()
+            input_image= th.from_numpy(nib.load(batch["target_pathname"][b][0]+".nii.gz").get_fdata()).float()
             ss= ssim(input_image, output)
             ssim_list.append(ss)
             print(ss)
