@@ -3,7 +3,7 @@ import torch
 import torch.nn.functional as F
 from torch.autograd import Variable
 from math import exp
-
+import numpy as np
 def gaussian(window_size, sigma):
     gauss = torch.Tensor([exp(-(x - window_size//2)**2/float(2*sigma**2)) for x in range(window_size)])
     return gauss/gauss.sum()
@@ -68,6 +68,11 @@ class SSIM(torch.nn.Module):
         return _ssim(img1, img2, window, self.window_size, channel, self.size_average)
 
 def ssim(img1, img2, window_size = 11, size_average = True):
+    if isinstance(img1, np.ndarray):
+        img1 = torch.from_numpy(img1)
+
+    if isinstance(img2, np.ndarray):
+        img2 = torch.from_numpy(img2)
     channel = img1.shape[1]
     window = create_window(window_size, img1.shape)
     
