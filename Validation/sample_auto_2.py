@@ -202,6 +202,15 @@ def main():
         for b in range(sample.shape[0]):
             output=th.from_numpy(nib.load(output_name).get_fdata()).float()
             input_image= th.from_numpy(nib.load(batch["target_pathname"][b]).get_fdata()).float()
+            if input_image.dim() == 3:
+                input_image = input_image.unsqueeze(0).unsqueeze(0)  # [1, 1, D, H, W]
+            elif input_image.dim() == 4:
+                input_image = input_image.unsqueeze(0)               # [1, 1, D, H, W]
+
+            if output.dim() == 3:
+                output = output.unsqueeze(0).unsqueeze(0)
+            elif output.dim() == 4:
+                output = output.unsqueeze(0)
             ss= ssim(input_image, output)
             ssim_list.append(ss)
             print(ss)
