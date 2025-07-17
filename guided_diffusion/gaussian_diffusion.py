@@ -649,7 +649,7 @@ class GaussianDiffusion:
         self,
         model,
         shape,
-        time=5000,
+        time=1000,
         noise=None,
         clip_denoised=True,
         denoised_fn=None,
