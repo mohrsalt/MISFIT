@@ -176,6 +176,19 @@ def main():
         pad_sample = F.pad(sample, (0, 0, 8, 8, 8, 8), mode='constant', value=0)
         sample = pad_sample[:, :, :, :155]
 
+        # === Apply refinement net ===
+        refined = []
+        for i in range(sample.shape[0]):
+            inp = sample[i:i+1, :, :, :].unsqueeze(0).to(dist_util.dev())  # shape [1, 1, D, H, W]
+            with th.no_grad():
+                sharp = refine_net(inp)
+            refined.append(sharp.squeeze(0))  # shape [1, D, H, W]
+
+        sample = th.stack(refined)  # shape [B, 1, D, H, W]
+        sample = th.clamp(sample, min=0.0, max=sample.max())
+
+
+
 
 
 
