@@ -128,7 +128,7 @@ elif [[ $MODE == 'sample' ]]; then
   python scripts/sample.py $SAMPLE $COMMON;
 
 elif [[ $MODE == 'auto' ]]; then
-  python Validation/sample_auto.py $SAMPLE $COMMON;
+  python Validation/sample_auto_2.py $SAMPLE $COMMON;
 
 else
   echo "MODE NOT FOUND -> Check the supported modes again";
