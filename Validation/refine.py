@@ -24,11 +24,13 @@ class RefinementNet(nn.Module):
         )
 
     def forward(self, x):
-        return self.decoder(self.encoder(x)) + x
+        out = self.decoder(self.encoder(x)) + x
+        return torch.clamp(out, 0, 1)  # Ensure output stays in [0, 1]
+
 
 # === Dataset for pseudo train set ===
 class GeneratedToTargetDataset(Dataset):
-    def __init__(self, pseudo_train_dir, patch_size=(64, 64, 64)):
+    def __init__(self, pseudo_train_dir, patch_size=(96, 96, 96)):
         self.samples = []
         self.patch_size = patch_size
 
@@ -57,11 +59,11 @@ class GeneratedToTargetDataset(Dataset):
         gen_vol = nib.load(gen_path).get_fdata().astype(np.float32)
         tgt_vol = nib.load(tgt_path).get_fdata().astype(np.float32)
 
-        # Normalize
-        gen_vol = (gen_vol - np.mean(gen_vol)) / (np.std(gen_vol) + 1e-5)
-        tgt_vol = (tgt_vol - np.mean(tgt_vol)) / (np.std(tgt_vol) + 1e-5)
+        # === Min-Max Normalize to [0, 1] ===
+        gen_vol = (gen_vol - gen_vol.min()) / (gen_vol.max() - gen_vol.min() + 1e-8)
+        tgt_vol = (tgt_vol - tgt_vol.min()) / (tgt_vol.max() - tgt_vol.min() + 1e-8)
 
-        # Center crop
+        # === Center crop ===
         cz, cy, cx = [d // 2 for d in gen_vol.shape]
         pz, py, px = [p // 2 for p in self.patch_size]
         gen_crop = gen_vol[cz - pz:cz + pz, cy - py:cy + py, cx - px:cx + px]
@@ -76,7 +78,7 @@ class GeneratedToTargetDataset(Dataset):
 # === Main Training ===
 def train():
     pseudo_train_dir = '/home/users/ntu/mohor001/scratch/Task8DataBrats/pseudo_train_set'
-    dataset = GeneratedToTargetDataset(pseudo_train_dir)
+    dataset = GeneratedToTargetDataset(pseudo_train_dir, patch_size=(96, 96, 96))
     loader = DataLoader(dataset, batch_size=1, shuffle=True)
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -87,6 +89,7 @@ def train():
 
     for epoch in range(5):
         epoch_loss = 0.0
+        ssim_total = 0.0
         for x, y in tqdm(loader, desc=f"Epoch {epoch+1}"):
             x, y = x.to(device), y.to(device)
             pred = model(x)
@@ -95,9 +98,18 @@ def train():
             loss.backward()
             optimizer.step()
             epoch_loss += loss.item()
-        print(f"Epoch {epoch+1}: Avg Loss = {epoch_loss / len(loader):.4f}")
 
-    torch.save(model.state_dict(), "refinement_net.pt")
+            # SSIM score logging
+            with torch.no_grad():
+                ssim_score = 1.0 - ssim_loss(pred, y)
+                ssim_total += ssim_score.item()
+
+        avg_loss = epoch_loss / len(loader)
+        avg_ssim = ssim_total / len(loader)
+        print(f"Epoch {epoch+1}: Avg Loss = {avg_loss:.4f} | Avg SSIM = {avg_ssim:.4f}")
+
+    torch.save(model.state_dict(), "/home/users/ntu/mohor001/refinement_net.pt")
+
 
 if __name__ == "__main__":
     train()
