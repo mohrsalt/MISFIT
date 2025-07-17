@@ -184,7 +184,7 @@ def main():
             print(f'Saved to {output_name}')
         
         for b in range(sample.shape[0]):
-            output=th.from_numpy(output_name).get_fdata()).float()
+            output=th.from_numpy(nib.load(output_name).get_fdata()).float()
             input_image= th.from_numpy(nib.load(batch["target_pathname"][b]).get_fdata()).float()
             ss= ssim(input_image, output)
             ssim_list.append(ss)
