@@ -82,7 +82,7 @@ def get_brats_dataset(data_paths, csv_path=None, phase="train"):
             t1c = glob.glob(os.path.join(sub_path, f"*{subject}-t1c.nii.gz"))[0]
             t2w = glob.glob(os.path.join(sub_path, f"*{subject}-t2w.nii.gz"))[0]
             t2f = glob.glob(os.path.join(sub_path, f"*{subject}-t2f.nii.gz"))[0]
-            seg = glob.glob(os.path.join(sub_path, f"*{subject}-seg.nii.gz"))[0]
+            
             all_modalities = {'t1n': t1n, 't1c': t1c, 't2w': t2w, 't2f': t2f}
             target_modality, target_pathname, source_modalities = next(((m, path,[k for k in all_modalities if k != m])
                                                     for m, path in all_modalities.items()
@@ -96,7 +96,7 @@ def get_brats_dataset(data_paths, csv_path=None, phase="train"):
                 "target_modality":target_modality,
                 "source_modalities":source_modalities,
                 "target_pathname": target_pathname,
-                "seg_path": seg,
+              
                 "subject_id": subject,
                 "path": t1n
             })

@@ -9,18 +9,42 @@ import os
 import pathlib
 import random
 import sys
+from ssim import ssim
+from scipy.stats import wilcoxon
+from skimage.metrics import peak_signal_noise_ratio as psnr
 import torch as th
 import torch.nn.functional as F
 import yaml
 from scripts.taming.models.vqgan import VQModel
 sys.path.append(".")
-from ssim import ssim
+
 from guided_diffusion import (dist_util,
                               logger)
 from brats import BraTS2021Test
 from guided_diffusion.script_util import (model_and_diffusion_defaults, create_model_and_diffusion,
                                           add_dict_to_argparser, args_to_dict)
 from DWT_IDWT.DWT_IDWT_layer import IDWT_3D
+
+
+
+def get_psnr(x, y, data_range):
+    EPS = 1e-8
+
+    x = x / float(data_range)
+    y = y / float(data_range)
+
+    # if (x.size(1) == 3) and convert_to_greyscale:
+    #     # Convert RGB image to YCbCr and take luminance: Y = 0.299 R + 0.587 G + 0.114 B
+    #     rgb_to_grey = torch.tensor([0.299, 0.587, 0.114]).view(1, -1, 1, 1).to(x)
+    #     x = torch.sum(x * rgb_to_grey, dim=1, keepdim=True)
+    #     y = torch.sum(y * rgb_to_grey, dim=1, keepdim=True)
+
+    mse = th.mean((x - y) ** 2, dim=[1, 2, 3, 4])
+    score: th.Tensor = - 10 * th.log10(mse + EPS)
+    return th.mean(score, dim = 0)
+
+
+
 
 def main():
     args = create_argparser().parse_args()
@@ -64,7 +88,8 @@ def main():
     logger.log("Load model from: {}".format(selected_model_path))
     model.load_state_dict(dist_util.load_state_dict(selected_model_path, map_location="cpu"))
     model.to(dist_util.dev([0, 1]) if len(args.devices) > 1 else dist_util.dev())  # allow for 2 devices
-
+    ssim_list=[]
+    psnr_list=[]
     for batch in iter(datal):
         subject_name = batch['subject_id'][0] #start from here and also tweak .sh file
         missing_target=batch['target_modality'][0]
@@ -155,7 +180,20 @@ def main():
             print(f'Saved to {output_name}')
         
         for b in range(batch.shape[0]):
-            ssim(batch["target_pathname"][b],output_name,batch["seg_path"][b])
+            output=sample.detach().cpu().numpy()[b, :, :, :]
+            input_image=batch["target"][b]
+            ssim_list.append(ssim(input_image, output))
+            psnr_list.append(get_psnr(input_image, output , data_range=output.max() - output.min()))
+        
+    print(" average SSIM: ", np.mean(ssim_list))
+    print(" average PSNR: ", np.mean(psnr_list))
+    
+    print(" std of SSIM: ", np.std(ssim_list))
+    print(" std of PSNR: ", np.std(psnr_list))
+    
+    print(" p-value of SSIM: ", wilcoxon(ssim_list)[-1])
+    print(" p-value of PSNR: ", wilcoxon(psnr_list)[-1])
+            
 
 
 

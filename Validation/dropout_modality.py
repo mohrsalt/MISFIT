@@ -30,6 +30,7 @@ for count, ff in enumerate(folder_list):
         print(modality_list[drop_index[count]] + ' is droppd for case ' + mm)
         if not modality_list[drop_index[count]] in mm:
             shutil.copyfile(os.path.join(val_set_folder, ff, mm), os.path.join(val_set_missing, ff, mm))
+        
         else:
             shutil.copyfile(os.path.join(val_set_folder, ff, mm), os.path.join(val_set_missing, ff, "Missing_Target_"+mm))
 

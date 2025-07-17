@@ -1,102 +1,78 @@
-
-from torchmetrics.image import StructuralSimilarityIndexMeasure
+from typing import Sequence
 import torch
-import numpy as np
-import SimpleITK as sitk 
+import torch.nn.functional as F
+from torch.autograd import Variable
+from math import exp
 
-# Define evaluation Metrics
-ssim = StructuralSimilarityIndexMeasure()
+def gaussian(window_size, sigma):
+    gauss = torch.Tensor([exp(-(x - window_size//2)**2/float(2*sigma**2)) for x in range(window_size)])
+    return gauss/gauss.sum()
 
-def __percentile_clip(input_tensor, reference_tensor=None, p_min=0.5, p_max=99.5, strictlyPositive=True):
-    """Normalizes a tensor based on percentiles. Clips values below and above the percentile.
-    Percentiles for normalization can come from another tensor.
+def create_window(window_size: int, shape: Sequence = [1,1,1]):
+    channel = shape[1]
+    dim = len(shape)-2
+    _1D_window = gaussian(window_size, 1.5)
+    window = _1D_window
+    _1D_window = _1D_window.unsqueeze(1).t()
+    for _ in range(dim-1):
+        window = torch.matmul(window.unsqueeze(-1), _1D_window).float()
+    return Variable(window.view(1,1,*dim*[window_size]).expand(channel, 1, *dim*[window_size]).contiguous())
 
-    Args:
-        input_tensor (torch.Tensor): Tensor to be normalized based on the data from the reference_tensor.
-            If reference_tensor is None, the percentiles from this tensor will be used.
-        reference_tensor (torch.Tensor, optional): The tensor used for obtaining the percentiles.
-        p_min (float, optional): Lower end percentile. Defaults to 0.5.
-        p_max (float, optional): Upper end percentile. Defaults to 99.5.
-        strictlyPositive (bool, optional): Ensures that really all values are above 0 before normalization. Defaults to True.
+def _ssim(img1: torch.Tensor, img2: torch.Tensor, window: Variable, window_size: int, channel: int, size_average = True):
+    conv = F.conv1d if img1.dim()==3 else F.conv2d if img1.dim()==4 else F.conv3d
+    mu1 = conv(img1, window, padding = window_size//2, groups = channel)
+    mu2 = conv(img2, window, padding = window_size//2, groups = channel)
 
-    Returns:
-        torch.Tensor: The input_tensor normalized based on the percentiles of the reference tensor.
-    """
-    if(reference_tensor == None):
-        reference_tensor = input_tensor
-    v_min, v_max = np.percentile(reference_tensor, [p_min,p_max]) #get p_min percentile and p_max percentile
+    mu1_sq = mu1.pow(2)
+    mu2_sq = mu2.pow(2)
+    mu1_mu2 = mu1*mu2
 
-    if( v_min < 0 and strictlyPositive): #set lower bound to be 0 if it would be below
-        v_min = 0
-    output_tensor = np.clip(input_tensor,v_min,v_max) #clip values to percentiles from reference_tensor
-    output_tensor = (output_tensor - v_min)/(v_max-v_min) #normalizes values to [0;1]
+    sigma1_sq = conv(img1*img1, window, padding = window_size//2, groups = channel) - mu1_sq
+    sigma2_sq = conv(img2*img2, window, padding = window_size//2, groups = channel) - mu2_sq
+    sigma12 = conv(img1*img2, window, padding = window_size//2, groups = channel) - mu1_mu2
 
-    return output_tensor
+    C1 = 0.01**2
+    C2 = 0.03**2
 
+    ssim_map = ((2*mu1_mu2 + C1)*(2*sigma12 + C2))/((mu1_sq + mu2_sq + C1)*(sigma1_sq + sigma2_sq + C2))
+
+    if size_average:
+        return ssim_map.mean()
+    else:
+        return ssim_map.mean(1).mean(1).mean(1)
+
+class SSIM(torch.nn.Module):
+    def __init__(self, window_size = 11, size_average = True):
+        super(SSIM, self).__init__()
+        self.window_size = window_size
+        self.size_average = size_average
+        self.channel = 1
+        self.window = create_window(window_size)
+
+    def forward(self, img1: torch.Tensor, img2: torch.Tensor):
+        channel = img1.shape[1]
+
+        if self.window.data.type() == img1.data.type():
+            window = self.window
+        else:
+            window = create_window(self.window_size, img1.shape)
             
-def compute_metrics(gt_image: torch.Tensor, prediction: torch.Tensor, mask: torch.Tensor, normalize=True):
-    """Computes MSE, PSNR and SSIM between two images only in the masked region.
+            if img1.is_cuda:
+                window = window.cuda(img1.get_device())
+            window = window.type_as(img1)
+            
+            self.window = window
+            self.channel = channel
 
-    Normalizes the two images to [0;1] based on the gt_image 0.5 and 99.5 percentile in the non-masked region.
-    Requires input to have shape (1,1, X,Y,Z), meaning only one sample and one channel.
-    For SSIM, we first separate the input volume to be tumor region and non-tumor region, then we apply regular SSIM on the complete volume. In the end we take
-    the two volumes.
 
-    Args:
-        gt_image (torch.Tensor): The ground truth image (***.nii.gz)
-        prediction (torch.Tensor): The inferred/predicted image
-        mask (torch.Tensor): The segmentation mask (seg.nii.gz)
-        normalize (bool): Normalizes the input by dividing trough the maximal value of the gt_image in the masked
-            region. Defaults to True
+        return _ssim(img1, img2, window, self.window_size, channel, self.size_average)
 
-    Raises:
-        UserWarning: If you dimensions do not match the (torchmetrics) requirements: 1,1,X,Y,Z
-
-    Returns:
-        float: (SSIM_tumor, SSIM_non_tumor)
-    """
-
-    if not (prediction.shape[0] == 1 and prediction.shape[1] == 1):
-        raise UserWarning(f"All inputs have to be 5D with the first two dimensions being 1. Your prediction dimension: {prediction.shape}")
+def ssim(img1, img2, window_size = 11, size_average = True):
+    channel = img1.shape[1]
+    window = create_window(window_size, img1.shape)
     
-    # Normalize to [0;1] individually after intensity clipping
-    if normalize:
-        gt_image = __percentile_clip(gt_image, p_min=0.5, p_max=99.5, strictlyPositive=True)
-        prediction = __percentile_clip(prediction, p_min=0.5, p_max=99.5, strictlyPositive=True)
-    mask[mask>0] = 1
-    mask = mask.type(torch.int64)
-    # Get Infill region (we really are only interested in the infill region)
-    prediction_tumor = prediction * mask
-    gt_image_tumor = gt_image * mask
-
-    prediction_non_tumor = prediction * (1-mask)
-    gt_image_non_tumor = gt_image * (1-mask)
-
- 
-    # SSIM - apply on complete masked image but only take values from masked region
-    SSIM_tumor = ssim(preds=prediction_tumor, target=gt_image_tumor)
-    SSIM_non_tumor = ssim(preds=prediction_non_tumor, target=gt_image_non_tumor)
-
-    return float(SSIM_tumor), float(SSIM_non_tumor)
-
-
-
-
-def ssim(real_path,syn_path,seg_path):
-    array_real = sitk.GetArrayFromImage(sitk.ReadImage(real_path))
-    array_syn = sitk.GetArrayFromImage(sitk.ReadImage(syn_path))
-    array_seg = sitk.GetArrayFromImage(sitk.ReadImage(seg_path))
-
-    array_real = array_real[np.newaxis, np.newaxis, ...]
-    array_syn = array_syn[np.newaxis, np.newaxis, ...]
-    array_seg = array_seg[np.newaxis, np.newaxis, ...]
-
-    array_real = torch.from_numpy(array_real)
-    array_syn = torch.from_numpy(array_syn)
-    array_seg = torch.from_numpy(array_seg)
-
-
-    SSIM_tumor, SSIM_non_tumor = compute_metrics(array_real, array_syn, array_seg, normalize=True)
-
-    print(SSIM_tumor)
-    print(SSIM_non_tumor)
+    if img1.is_cuda:
+        window = window.cuda(img1.get_device())
+    window = window.type_as(img1)
+    
+    return _ssim(img1, img2, window, window_size, channel, size_average)
