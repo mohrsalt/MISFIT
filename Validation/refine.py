@@ -31,18 +31,23 @@ class GeneratedToTargetDataset(Dataset):
     def __init__(self, pseudo_train_dir, patch_size=(64, 64, 64)):
         self.samples = []
         self.patch_size = patch_size
+
         for subject in os.listdir(pseudo_train_dir):
             subject_path = os.path.join(pseudo_train_dir, subject)
             files = os.listdir(subject_path)
-            generated = [f for f in files if '-generated' in f]
-            for gen_file in generated:
-                modality = gen_file.split('-generated')[0]
-                target_file = f"Missing_Target_{modality}"
-                if target_file in files:
-                    self.samples.append((
-                        os.path.join(subject_path, gen_file),
-                        os.path.join(subject_path, target_file)
-                    ))
+
+            # Get paths to generated and missing target
+            gen_path = None
+            tgt_path = None
+
+            for f in files:
+                if f.endswith('-generated.nii.gz'):
+                    gen_path = os.path.join(subject_path, f)
+                elif f.startswith('Missing_Target_') and f.endswith('.nii.gz'):
+                    tgt_path = os.path.join(subject_path, f)
+
+            if gen_path and tgt_path:
+                self.samples.append((gen_path, tgt_path))
 
     def __len__(self):
         return len(self.samples)
@@ -66,6 +71,7 @@ class GeneratedToTargetDataset(Dataset):
             torch.from_numpy(gen_crop[None, ...]),
             torch.from_numpy(tgt_crop[None, ...])
         )
+
 
 # === Main Training ===
 def train():
