@@ -49,7 +49,7 @@ elif [[ $MODE == 'sample' ]]; then
   echo "MODE: sampling (image-to-image translation)";
   if [[ $DATASET == 'brats' ]]; then
     echo "DATASET: BRATS";
-    DATA_DIR=/home/users/ntu/mohor001/scratch/Task8DataBrats/pseudo_val_set;
+    DATA_DIR=/home/users/ntu/mohor001/scratch/Task8DataBrats/pseudo_train_set;
   else
     echo "DATASET NOT FOUND -> Check the supported datasets again";
   fi
@@ -59,7 +59,7 @@ elif [[ $MODE == 'auto' ]]; then
   echo "MODE: sampling in automatic mode (image-to-image translation)";
   if [[ $DATASET == 'brats' ]]; then
     echo "DATASET: BRATS";
-    DATA_DIR=/home/users/ntu/mohor001/scratch/Task8DataBrats/pseudo_val_set;
+    DATA_DIR=/home/users/ntu/mohor001/scratch/Task8DataBrats/pseudo_train_set;
   else
     echo "DATASET NOT FOUND -> Check the supported datasets again";
   fi
