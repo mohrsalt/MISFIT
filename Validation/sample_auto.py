@@ -193,7 +193,27 @@ def main():
             ps= get_psnr(output,input_image)
             psnr_list.append(ps)
             print(ps)
-        
+            if missing_target=="t1n":
+                
+                ssim_t1n_list.append(ss)
+                psnr_t1n_list.append(ps)
+                print(missing_target+ " added")
+            elif missing_target=="t1c":
+                
+                ssim_t1c_list.append(ss)
+                psnr_t1c_list.append(ps)
+                print(missing_target+ " added")
+            elif missing_target=="t2w":
+                
+                ssim_t2w_list.append(ss)
+                psnr_t2w_list.append(ps)
+                print(missing_target+ " added")
+            elif missing_target=="t2f":
+                
+                ssim_t2f_list.append(ss)
+                psnr_t2f_list.append(ps)
+                print(missing_target+ " added")
+
     print(" average SSIM: ", np.mean(ssim_list))
     print(" average PSNR: ", np.mean(psnr_list))
     
@@ -202,8 +222,46 @@ def main():
     
     print(" p-value of SSIM: ", wilcoxon(ssim_list)[-1])
     print(" p-value of PSNR: ", wilcoxon(psnr_list)[-1])
-            
+    
+    # t1n
+    print(" average SSIM t1n: ", np.mean(ssim_t1n_list))
+    print(" average PSNR t1n: ", np.mean(psnr_t1n_list))
+    
+    print(" std of SSIM t1n: ", np.std(ssim_t1n_list))
+    print(" std of PSNR t1n: ", np.std(psnr_t1n_list))
+    
+    print(" p-value of SSIM t1n: ", wilcoxon(ssim_t1n_list)[-1])
+    print(" p-value of PSNR t1n: ", wilcoxon(psnr_t1n_list)[-1])
 
+    # t1c
+    print(" average SSIM t1c: ", np.mean(ssim_t1c_list))
+    print(" average PSNR t1c: ", np.mean(psnr_t1c_list))
+    
+    print(" std of SSIM t1c: ", np.std(ssim_t1c_list))
+    print(" std of PSNR t1c: ", np.std(psnr_t1c_list))
+    
+    print(" p-value of SSIM t1c: ", wilcoxon(ssim_t1c_list)[-1])
+    print(" p-value of PSNR t1c: ", wilcoxon(psnr_t1c_list)[-1])
+
+    # t2w
+    print(" average SSIM t2w: ", np.mean(ssim_t2w_list))
+    print(" average PSNR t2w: ", np.mean(psnr_t2w_list))
+    
+    print(" std of SSIM t2w: ", np.std(ssim_t2w_list))
+    print(" std of PSNR t2w: ", np.std(psnr_t2w_list))
+    
+    print(" p-value of SSIM t2w: ", wilcoxon(ssim_t2w_list)[-1])
+    print(" p-value of PSNR t2w: ", wilcoxon(psnr_t2w_list)[-1])
+
+    # t2f
+    print(" average SSIM t2f: ", np.mean(ssim_t2f_list))
+    print(" average PSNR t2f: ", np.mean(psnr_t2f_list))
+    
+    print(" std of SSIM t2f: ", np.std(ssim_t2f_list))
+    print(" std of PSNR t2f: ", np.std(psnr_t2f_list))
+    
+    print(" p-value of SSIM t2f: ", wilcoxon(ssim_t2f_list)[-1])
+    print(" p-value of PSNR t2f: ", wilcoxon(psnr_t2f_list)[-1])
 
 
 
