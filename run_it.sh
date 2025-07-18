@@ -5,7 +5,7 @@ export CUDA_VISIBLE_DEVICES=0,1
 conda activate vqgan
 
 # general settings
-GPU=0,1                    # gpu to use
+GPU=0                    # gpu to use
 SEED=42;                  # randomness seed for sampling
 CHANNELS=64;              # number of model base channels (we use 64 for all experiments)
 MODE='train';             # train, sample, auto (for automatic missing contrast generation)
@@ -25,7 +25,7 @@ if [[ $MODEL == 'unet' ]]; then
   ADDITIVE_SKIP=False;      # Set True to save memory
   BATCH_SIZE=1;
   IMAGE_SIZE=224;
-  IN_CHANNELS=40;           # Change to work with different number of conditioning images 8 + 8x (with x number of conditioning images)
+  IN_CHANNELS=48;           # Change to work with different number of conditioning images 8 + 8x (with x number of conditioning images)
   NOISE_SCHED='linear';
 else
   echo "MODEL TYPE NOT FOUND -> Check the supported configurations again";
@@ -122,7 +122,7 @@ SAMPLE="
 
 # run the python scripts
 if [[ $MODE == 'train' ]]; then
-  torchrun --nproc_per_node=2 scripts/train.py $TRAIN $COMMON;
+  torchrun --nproc_per_node=1 scripts/train.py $TRAIN $COMMON;
 
 elif [[ $MODE == 'sample' ]]; then
   python scripts/sample.py $SAMPLE $COMMON;
