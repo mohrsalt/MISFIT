@@ -124,7 +124,7 @@ class BraTSbase(Brain3DBase):
         if self.source is None:
             target = "t1n"
             source = ["t1c", "t2w", "t2f"]
-            print("Target loaded: ", target)
+            
 
         else:
             source, target = self.source, self.target
