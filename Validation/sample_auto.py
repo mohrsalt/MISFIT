@@ -29,22 +29,13 @@ from DWT_IDWT.DWT_IDWT_layer import IDWT_3D
 def strip_module_prefix(state_dict):
     return {k.replace("module.", ""): v for k, v in state_dict.items()}
 
-def get_psnr(x, y, data_range):
-    EPS = 1e-8
+def get_psnr(gen, mis):
+    gen = (gen - gen.min()) / (gen.max() - gen.min())
+    mis = (mis - mis.min()) / (mis.max() - mis.min())
 
-    x = x / float(data_range)
-    y = y / float(data_range)
-
-    # if (x.size(1) == 3) and convert_to_greyscale:
-    #     # Convert RGB image to YCbCr and take luminance: Y = 0.299 R + 0.587 G + 0.114 B
-    #     rgb_to_grey = torch.tensor([0.299, 0.587, 0.114]).view(1, -1, 1, 1).to(x)
-    #     x = torch.sum(x * rgb_to_grey, dim=1, keepdim=True)
-    #     y = torch.sum(y * rgb_to_grey, dim=1, keepdim=True)
-
-    mse = th.mean((x - y) ** 2, dim=[1, 2, 3, 4])
-    score: th.Tensor = - 10 * th.log10(mse + EPS)
-    return th.mean(score, dim = 0)
-
+    # Compute PSNR
+    score = psnr(mis, gen, data_range=1.0)
+    return score
 
 
 
@@ -95,10 +86,20 @@ def main():
 
     ssim_list=[]
     psnr_list=[]
+    ssim_t1n_list=[]
+    ssim_t1c_list=[]
+    ssim_t2w_list=[]
+    ssim_t2f_list=[]
+    psnr_t1n_list=[]
+    psnr_t1c_list=[]
+    psnr_t2w_list=[]
+    psnr_t2f_list=[]
+
     for batch in iter(datal):
         subject_name = batch['subject_id'][0] #start from here and also tweak .sh file
         missing_target=batch['target_modality'][0]
-
+        print(batch['target_modality'])
+        print(missing_target)
 
 
 
@@ -189,9 +190,7 @@ def main():
             ss= ssim(input_image, output)
             ssim_list.append(ss)
             print(ss)
-            input_image = input_image.unsqueeze(0).unsqueeze(0)  # Now shape is [1, 1, H, W, D]
-            output = output.unsqueeze(0).unsqueeze(0)
-            ps= get_psnr(input_image, output , data_range=output.max() - output.min())
+            ps= get_psnr(output,input_image)
             psnr_list.append(ps)
             print(ps)
         

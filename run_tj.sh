@@ -3,9 +3,9 @@
 # Below, is the queue
 #PBS -q normal
 #PBS -j oe
-#PBS -l select=1:ncpus=16:ngpus=1
-#PBS -l walltime=1:00:00
-#PBS -N god
+#PBS -l select=1:ncpus=16:ngpus=4
+#PBS -l walltime=72:00:00
+#PBS -N godtest
 module load miniforge3
 
 export CUDA_VISIBLE_DEVICES=0
