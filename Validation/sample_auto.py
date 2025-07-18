@@ -98,8 +98,7 @@ def main():
     for batch in iter(datal):
         subject_name = batch['subject_id'][0] #start from here and also tweak .sh file
         missing_target=batch['target_modality'][0]
-        print(batch['target_modality'])
-        print(missing_target)
+
 
 
 
