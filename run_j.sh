@@ -4,8 +4,8 @@
 #PBS -q normal
 #PBS -j oe
 #PBS -l select=1:ncpus=16:ngpus=4
-#PBS -l walltime=00:10:00
-#PBS -N god
+#PBS -l walltime=72:00:00
+#PBS -N godt1n
 module load miniforge3
 
 export CUDA_VISIBLE_DEVICES=0,1,2,3
@@ -32,7 +32,7 @@ if [[ $MODEL == 'unet' ]]; then
   ADDITIVE_SKIP=False;      # Set True to save memory
   BATCH_SIZE=1;
   IMAGE_SIZE=224;
-  IN_CHANNELS=40;           # Change to work with different number of conditioning images 8 + 8x (with x number of conditioning images)
+  IN_CHANNELS=48;           # Change to work with different number of conditioning images 8 + 8x (with x number of conditioning images)
   NOISE_SCHED='linear';
 else
   echo "MODEL TYPE NOT FOUND -> Check the supported configurations again";
