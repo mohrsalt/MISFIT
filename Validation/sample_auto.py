@@ -24,7 +24,7 @@ from brats import BraTS2021Test
 from guided_diffusion.script_util import (model_and_diffusion_defaults, create_model_and_diffusion,
                                           add_dict_to_argparser, args_to_dict)
 from DWT_IDWT.DWT_IDWT_layer import IDWT_3D
-from refine import RefinementNet  
+
 
 def strip_module_prefix(state_dict):
     return {k.replace("module.", ""): v for k, v in state_dict.items()}
@@ -92,10 +92,7 @@ def main():
     state_dict = strip_module_prefix(state_dict)
 
     model.load_state_dict(state_dict)
-    refine_net = RefinementNet()
-    refine_net.load_state_dict(th.load("/home/users/ntu/mohor001/refinement_net.pt", map_location=dist_util.dev()))
-    refine_net = refine_net.to(dist_util.dev())
-    refine_net.eval()
+
     ssim_list=[]
     psnr_list=[]
     for batch in iter(datal):
