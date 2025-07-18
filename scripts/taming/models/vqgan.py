@@ -137,6 +137,18 @@ class VQModel(pl.LightningModule):
         latent_transfer = self.spade(h, target)       #caff spade dimensions
         return latent_transfer
     
+    def forward_caff(self, input, input_modals=None):
+       
+        h1=self.encode(input[:,0].unsqueeze(1)) #(1,8,112,112,80)
+        h2=self.encode(input[:,1].unsqueeze(1))
+        h3=self.encode(input[:,2].unsqueeze(1))
+        h1=h1.unsqueeze(1)
+        h2=h2.unsqueeze(1)
+        h3=h3.unsqueeze(1)
+        h_concat=torch.concat([h1,h2,h3],dim=1) 
+        h=self.caff(h_concat,input_modals)
+        return h
+    
     def get_input(self, batch, k):
         x = batch[k]
         
