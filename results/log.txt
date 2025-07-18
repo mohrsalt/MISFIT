@@ -1,0 +1,3 @@
+Logging to ./results
+Creating model and diffusion...
+Load model from: /home/users/ntu/mohor001/scratch/cwchkpt/Jul14_07-40-32_x1000c0s0b0n0/checkpoints/brats_150000.pt

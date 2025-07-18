@@ -1,21 +1,14 @@
-#!/bin/bash
-# Exercise 2 submission script - submit.sh
-# Below, is the queue
-#PBS -q normal
-#PBS -j oe
-#PBS -l select=1:ncpus=16:ngpus=1
-#PBS -l walltime=24:00:00
-#PBS -N godtest
+
 module load miniforge3
 
-export CUDA_VISIBLE_DEVICES=0
+export CUDA_VISIBLE_DEVICES=0,1
 conda activate vqgan
-cd cwdm-modified
+
 # general settings
-GPU=0                   # gpu to use
+GPU=0,1                    # gpu to use
 SEED=42;                  # randomness seed for sampling
 CHANNELS=64;              # number of model base channels (we use 64 for all experiments)
-MODE='auto';             # train, sample, auto (for automatic missing contrast generation)
+MODE='train';             # train, sample, auto (for automatic missing contrast generation)
 DATASET='brats';          # brats
 MODEL='unet';             # 'unet'
 CONTR='t1n'               # contrast to be generate by the network ('t1n', t1c', 't2w', 't2f') - just relevant during training
@@ -56,7 +49,7 @@ elif [[ $MODE == 'sample' ]]; then
   echo "MODE: sampling (image-to-image translation)";
   if [[ $DATASET == 'brats' ]]; then
     echo "DATASET: BRATS";
-    DATA_DIR=/home/users/ntu/mohor001/scratch/Task8DataBrats/pseudo_val_set;
+    DATA_DIR=./datasets/BRATS2023/validation;
   else
     echo "DATASET NOT FOUND -> Check the supported datasets again";
   fi
@@ -66,7 +59,7 @@ elif [[ $MODE == 'auto' ]]; then
   echo "MODE: sampling in automatic mode (image-to-image translation)";
   if [[ $DATASET == 'brats' ]]; then
     echo "DATASET: BRATS";
-    DATA_DIR=/home/users/ntu/mohor001/scratch/Task8DataBrats/pseudo_val_set;
+    DATA_DIR=./datasets/BRATS2023/pseudo_validation;
   else
     echo "DATASET NOT FOUND -> Check the supported datasets again";
   fi
@@ -107,7 +100,7 @@ TRAIN="
 --image_size=${IMAGE_SIZE}
 --use_fp16=False
 --lr=1e-5
---save_interval=200000
+--save_interval=100000
 --num_workers=12
 --num_workers=12
 --devices=${GPU}
@@ -129,13 +122,13 @@ SAMPLE="
 
 # run the python scripts
 if [[ $MODE == 'train' ]]; then
-  torchrun --nproc_per_node=4 scripts/train.py $TRAIN $COMMON;
+  torchrun --nproc_per_node=2 scripts/train.py $TRAIN $COMMON;
 
 elif [[ $MODE == 'sample' ]]; then
   python scripts/sample.py $SAMPLE $COMMON;
 
 elif [[ $MODE == 'auto' ]]; then
-  python Validation/sample_auto.py $SAMPLE $COMMON;
+  python scripts/sample_auto.py $SAMPLE $COMMON;
 
 else
   echo "MODE NOT FOUND -> Check the supported modes again";

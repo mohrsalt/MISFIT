@@ -122,8 +122,8 @@ class BraTSbase(Brain3DBase):
         item = dict(self.data[i])
 
         if self.source is None:
-            target = random.choice(self.modalities)
-            source = [m for m in self.modalities if m != target]
+            target = "t1n"
+            source = ["t1c", "t2w", "t2f"]
 
         else:
             source, target = self.source, self.target

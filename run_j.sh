@@ -4,7 +4,7 @@
 #PBS -q normal
 #PBS -j oe
 #PBS -l select=1:ncpus=16:ngpus=4
-#PBS -l walltime=72:00:00
+#PBS -l walltime=00:10:00
 #PBS -N god
 module load miniforge3
 
