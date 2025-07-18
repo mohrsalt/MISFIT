@@ -189,7 +189,9 @@ def main():
             ss= ssim(input_image, output)
             ssim_list.append(ss)
             print(ss)
-            ps= get_psnr(output,input_image)
+            gen = nib.load(output_name).get_fdata()
+            mis = nib.load(batch["target_pathname"][b]).get_fdata()
+            ps= get_psnr(gen,mis)
             psnr_list.append(ps)
             print(ps)
             if missing_target=="t1n":
