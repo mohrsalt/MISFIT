@@ -7,12 +7,12 @@ import numpy as np
 import random
 import sys
 import torch as th
-from scripts.taming.data.brats_t2w import BraTS2021Train
+
 from torch.utils.data.distributed import DistributedSampler
 
 sys.path.append(".")
 sys.path.append("..")
-
+from scripts.taming.data.brats_t2w import BraTS2021Train
 from guided_diffusion import dist_util, logger
 from guided_diffusion.resample import create_named_schedule_sampler
 from guided_diffusion.script_util import (model_and_diffusion_defaults, create_model_and_diffusion,
