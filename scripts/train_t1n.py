@@ -37,7 +37,7 @@ def setup_ddp():
     return torch.device("cuda", local_rank), local_rank
 
 def main():
-    print("RUNNING RIGHT NOW-: T1N")
+    logger.log("RUNNING RIGHT NOW-: T1N")
     dist.init_process_group(backend="nccl", init_method="env://")    
     args = create_argparser().parse_args()
     seed = args.seed
