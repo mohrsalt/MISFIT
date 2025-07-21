@@ -3,16 +3,16 @@
 # Below, is the queue
 #PBS -q normal
 #PBS -j oe
-#PBS -l select=1:ncpus=16:ngpus=4
-#PBS -l walltime=72:00:00
-#PBS -N godt1n
+#PBS -l select=1:ncpus=16:ngpus=1
+#PBS -l walltime=00:30:00
+#PBS -N godtemp
 module load miniforge3
 
-export CUDA_VISIBLE_DEVICES=0,1,2,3
+export CUDA_VISIBLE_DEVICES=0
 conda activate vqgan
 cd cwdm-modified
 # general settings
-GPU=0,1,2,3                    # gpu to use
+GPU=0                    # gpu to use
 SEED=42;                  # randomness seed for sampling
 CHANNELS=64;              # number of model base channels (we use 64 for all experiments)
 MODE='train';             # train, sample, auto (for automatic missing contrast generation)
@@ -32,7 +32,7 @@ if [[ $MODEL == 'unet' ]]; then
   ADDITIVE_SKIP=False;      # Set True to save memory
   BATCH_SIZE=1;
   IMAGE_SIZE=224;
-  IN_CHANNELS=48;           # Change to work with different number of conditioning images 8 + 8x (with x number of conditioning images)
+  IN_CHANNELS=32;           # 48 Change to work with different number of conditioning images 8 + 8x (with x number of conditioning images)
   NOISE_SCHED='linear';
 else
   echo "MODEL TYPE NOT FOUND -> Check the supported configurations again";
@@ -129,7 +129,7 @@ SAMPLE="
 
 # run the python scripts
 if [[ $MODE == 'train' ]]; then
-  torchrun --nproc_per_node=4 scripts/train.py $TRAIN $COMMON;
+  torchrun --nproc_per_node=1 scripts/train.py $TRAIN $COMMON;
 
 elif [[ $MODE == 'sample' ]]; then
   python scripts/sample.py $SAMPLE $COMMON;
