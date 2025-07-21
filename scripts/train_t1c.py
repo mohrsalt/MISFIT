@@ -37,7 +37,7 @@ def setup_ddp():
     return torch.device("cuda", local_rank), local_rank
 
 def main():
-    logger.log("RUNNING RIGHT NOW-: T1C")
+    
     dist.init_process_group(backend="nccl", init_method="env://")    
     args = create_argparser().parse_args()
     seed = args.seed
@@ -62,6 +62,7 @@ def main():
     #dist_util.setup_dist(devices=['0','1', '2', '3'])
     logger.log(args.devices)
     logger.log("Creating model and diffusion...")
+    logger.log("RUNNING RIGHT NOW-: T1C")
     arguments = args_to_dict(args, model_and_diffusion_defaults().keys())
     model, diffusion = create_model_and_diffusion(**arguments)
     with open("/home/users/ntu/mohor001/cwdm-modified/scripts/vqgan_config.yaml", "r") as f:
