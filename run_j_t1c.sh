@@ -5,7 +5,7 @@
 #PBS -j oe
 #PBS -l select=1:ncpus=16:ngpus=1
 #PBS -l walltime=00:30:00
-#PBS -N godtemp
+#PBS -N godt1c
 module load miniforge3
 
 export CUDA_VISIBLE_DEVICES=0
@@ -32,7 +32,7 @@ if [[ $MODEL == 'unet' ]]; then
   ADDITIVE_SKIP=False;      # Set True to save memory
   BATCH_SIZE=1;
   IMAGE_SIZE=224;
-  IN_CHANNELS=32;           # 48 Change to work with different number of conditioning images 8 + 8x (with x number of conditioning images)
+  IN_CHANNELS=48;           # 48 Change to work with different number of conditioning images 8 + 8x (with x number of conditioning images)
   NOISE_SCHED='linear';
 else
   echo "MODEL TYPE NOT FOUND -> Check the supported configurations again";
@@ -129,7 +129,7 @@ SAMPLE="
 
 # run the python scripts
 if [[ $MODE == 'train' ]]; then
-  torchrun --nproc_per_node=1 scripts/train.py $TRAIN $COMMON;
+  torchrun --nproc_per_node=1 scripts/train_t1c.py $TRAIN $COMMON;
 
 elif [[ $MODE == 'sample' ]]; then
   python scripts/sample.py $SAMPLE $COMMON;

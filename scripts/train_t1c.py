@@ -7,7 +7,7 @@ import numpy as np
 import random
 import sys
 import torch as th
-from taming.data.brats import BraTS2021Train
+from scripts.taming.data.brats_t1c import BraTS2021Train
 from torch.utils.data.distributed import DistributedSampler
 
 sys.path.append(".")
@@ -37,6 +37,7 @@ def setup_ddp():
     return torch.device("cuda", local_rank), local_rank
 
 def main():
+    print("RUNNING RIGHT NOW-: T1C")
     dist.init_process_group(backend="nccl", init_method="env://")    
     args = create_argparser().parse_args()
     seed = args.seed

@@ -1086,12 +1086,12 @@ class GaussianDiffusion:
                 h1=vqmodel.encode_noclamp(input[:,0].unsqueeze(1)) #(1,8,112,112,80)
                 h2=vqmodel.encode_noclamp(input[:,1].unsqueeze(1))
                 h3=vqmodel.encode_noclamp(input[:,2].unsqueeze(1))
-                #cond_dwt=vqmodel.forward_latent(input, y,src_idx)
-                #cond_caff=vqmodel.forward_caff(input,src_idx)
-                cond_dwt= th.cat([h1,h2,h3], dim=1)
+                cond_dwt=vqmodel.forward_latent(input, y,src_idx)
+                cond_caff=vqmodel.forward_caff(input,src_idx)
+                cond_dwt= th.cat([cond_dwt,cond_caff,h1,h2,h3], dim=1)
 
             # Wavelet transform the input image
-            x_tar = torch.zeros_like(x_start["target"])
+            x_tar = x_start["target"]
             # x_start_dwt = vqmodel.encode(x_tar)
             x_start_dwt = vqmodel.encode_noclamp(x_tar)
 
