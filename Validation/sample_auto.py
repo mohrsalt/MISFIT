@@ -51,7 +51,7 @@ def main():
     )
     diffusion.mode = 'i2i'
 
-    data_path_test=["/home/users/ntu/mohor001/scratch/Task8DataBrats/pseudo_val_set"]
+    data_path_test=["/home/users/ntu/mohor001/scratch/Task8DataBrats/pseudo_val_set_t2w"]
     ds = BraTS2021Test(data_path_test)
 
     datal = th.utils.data.DataLoader(ds,
@@ -77,7 +77,7 @@ def main():
     th.manual_seed(seed)
     np.random.seed(seed)
     random.seed(seed)
-    selected_model_path="/home/users/ntu/mohor001/scratch/cwchkpt/Jul14_07-40-32_x1000c0s0b0n0/checkpoints/brats_150000.pt"
+    selected_model_path="/home/users/ntu/mohor001/scratch/runs_t2w/Jul25_21-49-03_x1000c0s3b0n0/checkpoints/brats_150000.pt"
     logger.log("Load model from: {}".format(selected_model_path))
     state_dict = th.load(selected_model_path, map_location="cpu")
     state_dict = strip_module_prefix(state_dict)
@@ -129,7 +129,8 @@ def main():
             h2=vq_model.encode_noclamp(input[:,1].unsqueeze(1))
             h3=vq_model.encode_noclamp(input[:,2].unsqueeze(1))
             cond_dwt=vq_model.forward_latent(input, y,src_idx)
-            cond= th.cat([cond_dwt,h1,h2,h3], dim=1)
+            cond_caff=vq_model.forward_caff(input,src_idx)
+            cond= th.cat([cond_dwt,cond_caff,h1,h2,h3], dim=1)
 
 
         
