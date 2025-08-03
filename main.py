@@ -19,24 +19,55 @@ sys.path.append(".")
 
 # reqd imports
 
-from scripts.taming.models.vqgan import VQModel
-from guided_diffusion import (dist_util,
+from tools.taming.models.vqgan import VQModel
+from tools.guided_diffusion import (dist_util,
                               logger)
-from brats import BraTS2021Test
-from guided_diffusion.script_util import (model_and_diffusion_defaults, create_model_and_diffusion,
-                                          add_dict_to_argparser, args_to_dict)
-from DWT_IDWT.DWT_IDWT_layer import IDWT_3D
+from tools.brats import BraTS2021Test
+from tools.guided_diffusion.script_util import (model_and_diffusion_defaults, create_model_and_diffusion,
+                                          args_to_dict)
+from tools.DWT_IDWT.DWT_IDWT_layer import IDWT_3D
 
 
 def strip_module_prefix(state_dict):
     return {k.replace("module.", ""): v for k, v in state_dict.items()}
+
+def load_args_from_yaml(yaml_path):
+
+
+    with open(yaml_path, "r") as f:
+        user_config = yaml.safe_load(f)
+
+    defaults = dict(
+        seed=0,
+        data_dir="",
+        data_mode='validation',
+        clip_denoised=True,
+        num_samples=1,
+        batch_size=1,
+        use_ddim=False,
+        class_cond=False,
+        sampling_steps=0,
+        model_path="",
+        devices=[0],
+        output_dir='./results',
+        mode='default',
+        renormalize=False,
+        image_size=256,
+        half_res_crop=False,
+        concat_coords=False, # if true, add 3 (for 3d) or 2 (for 2d) to in_channels
+        contr="",
+    )
+    defaults.update({k:v for k, v in model_and_diffusion_defaults().items() if k not in defaults})
+    defaults.update(user_config)  
+
+    return argparse.Namespace(**defaults)
 
 
 
 
 
 def main():
-    args = create_argparser().parse_args()
+    args = load_args_from_yaml("/tools/Stage2.yaml")
     seed = args.seed
     dist_util.setup_dist(devices=args.devices)
     logger.configure()
@@ -47,7 +78,7 @@ def main():
     )
     diffusion.mode = 'i2i'
 
-    data_path_test=["/home/users/ntu/mohor001/scratch/Task8DataBrats/pseudo_val_set"]
+    data_path_test=["/input"]
     ds = BraTS2021Test(data_path_test)
 
     datal = th.utils.data.DataLoader(ds,
@@ -56,14 +87,14 @@ def main():
                                      shuffle=False,)
 
     model.eval()
-    with open("/home/users/ntu/mohor001/cwdm-modified/scripts/vqgan_config.yaml", "r") as f:
+    with open("/tools/Stage1.yaml", "r") as f:
         vq_config = yaml.safe_load(f)
 
 
     vq_model_config = vq_config["model"]["params"]
     vq_model_config["lossconfig"] = None  # Or use Identity if needed
 
-    vq_model = VQModel(**vq_model_config, ckpt_path="/home/users/ntu/mohor001/scratch/vqgan_checkpoint.ckpt")
+    vq_model = VQModel(**vq_model_config, ckpt_path="/checkpoints/Stage1.ckpt")
 
     vq_model.eval()
 
@@ -73,23 +104,6 @@ def main():
     th.manual_seed(seed)
     np.random.seed(seed)
     random.seed(seed)
-    #selected_model_path="/home/users/ntu/mohor001/scratch/runs_t1c/Jul21_23-04-23_x1000c1s3b0n1/checkpoints/brats_150000.pt"
-    #logger.log("Load model from: {}".format(selected_model_path))
-    #state_dict = th.load(selected_model_path, map_location="cpu")
-    #state_dict = strip_module_prefix(state_dict)
-
-    #model.load_state_dict(state_dict)
-
-    ssim_list=[]
-    psnr_list=[]
-    ssim_t1n_list=[]
-    ssim_t1c_list=[]
-    ssim_t2w_list=[]
-    ssim_t2f_list=[]
-    psnr_t1n_list=[]
-    psnr_t1c_list=[]
-    psnr_t2w_list=[]
-    psnr_t2f_list=[]
 
     for batch in iter(datal):
         subject_name = batch['subject_id'][0] #start from here and also tweak .sh file
@@ -107,7 +121,7 @@ def main():
         batch['target_class'] = batch['target_class'].to(dist_util.dev())
 
 
-        miss_name = args.data_dir + '/' + subject_name +'-' + batch['t_list'][0]+ '-'+"inference"
+        miss_name = args.output_dir + '/' + subject_name +'-' + batch['t_list'][0]+ '-'+"inference"
         print(miss_name)
 
 
@@ -138,13 +152,13 @@ def main():
         statetoload=batch['t_list'][0]
         selected_model_path=""
         if statetoload=="t1n":
-            selected_model_path="/home/users/ntu/mohor001/scratch/runs_t1n/Jul19_04-12-01_x1000c3s6b0n0/checkpoints/brats_150000.pt"        
+            selected_model_path="/checkpoints/Stage2_t1n.pt"        
         elif statetoload=="t1c":
-            selected_model_path="/home/users/ntu/mohor001/scratch/runs_t1c/Jul21_23-04-23_x1000c1s3b0n1/checkpoints/brats_150000.pt"        
+            selected_model_path="/checkpoints/Stage2_t1c.pt"         
         elif statetoload=="t2w":
-            selected_model_path="/home/users/ntu/mohor001/scratch/runs_t2w/Jul25_21-49-03_x1000c0s3b0n0/checkpoints/brats_150000.pt"        
+            selected_model_path="/checkpoints/Stage2_t2w.pt"        
         elif statetoload=="t2f":
-            selected_model_path="/home/users/ntu/mohor001/scratch/runs_t2f/Jul23_21-28-08_x1000c0s1b0n1/checkpoints/brats_150000.pt"        
+            selected_model_path="/checkpoints/Stage2_t2f.pt"         
 
         logger.log("Target is from: {}".format(statetoload)) #remove later
         logger.log("Load model from: {}".format(selected_model_path))	
@@ -204,31 +218,7 @@ def main():
         
 
 
-def create_argparser():
-    defaults = dict(
-        seed=0,
-        data_dir="",
-        data_mode='validation',
-        clip_denoised=True,
-        num_samples=1,
-        batch_size=1,
-        use_ddim=False,
-        class_cond=False,
-        sampling_steps=0,
-        model_path="",
-        devices=[0],
-        output_dir='./results',
-        mode='default',
-        renormalize=False,
-        image_size=256,
-        half_res_crop=False,
-        concat_coords=False, # if true, add 3 (for 3d) or 2 (for 2d) to in_channels
-        contr="",
-    )
-    defaults.update({k:v for k, v in model_and_diffusion_defaults().items() if k not in defaults})
-    parser = argparse.ArgumentParser()
-    add_dict_to_argparser(parser, defaults)
-    return parser
+
 
 
 if __name__ == "__main__":

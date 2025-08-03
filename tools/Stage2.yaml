@@ -1,0 +1,48 @@
+# High-level variables
+dataset: brats 
+model: unet
+contr: t1n
+seed: 42
+
+
+# Sampling settings
+iterations: 1200
+sampling_steps: 0
+run_dir: ""  # or path/to/checkpoint_dir
+data_dir: ""
+
+num_samples: 1000
+
+# Model/diffusion arguments
+num_channels: 64
+class_cond: false
+num_res_blocks: 2
+num_heads: 1
+learn_sigma: false
+use_scale_shift_norm: false
+attention_resolutions: ""
+channel_mult: "1,2,2,4,4"
+diffusion_steps: 1000
+noise_schedule: linear
+rescale_learned_sigmas: false
+rescale_timesteps: false
+dims: 3
+batch_size: 1
+num_groups: 32
+in_channels: 48
+out_channels: 8
+bottleneck_attention: false
+resample_2d: false
+renormalize: true
+additive_skips: false
+use_freq: false
+predict_xstart: true
+use_fp16: false
+clip_denoised: true
+use_ddim: false
+
+# Output
+output_dir: /output
+devices: [0]  
+image_size: 224
+model_path: ""
