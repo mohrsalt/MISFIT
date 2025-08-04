@@ -21,7 +21,7 @@ import itertools
 
 from . import dist_util, logger
 from .resample import LossAwareSampler, UniformSampler
-from DWT_IDWT.DWT_IDWT_layer import DWT_3D, IDWT_3D
+from tools.DWT_IDWT.DWT_IDWT_layer import DWT_3D, IDWT_3D
 
 INITIAL_LOG_LOSS_SCALE = 20.0
 

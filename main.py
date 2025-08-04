@@ -67,7 +67,7 @@ def load_args_from_yaml(yaml_path):
 
 
 def main():
-    args = load_args_from_yaml("/tools/Stage2.yaml")
+    args = load_args_from_yaml("./tools/Stage2.yaml")
     seed = args.seed
     dist_util.setup_dist(devices=args.devices)
     logger.configure()
@@ -78,7 +78,7 @@ def main():
     )
     diffusion.mode = 'i2i'
 
-    data_path_test=["/input"]
+    data_path_test=["./input"]
     ds = BraTS2021Test(data_path_test)
 
     datal = th.utils.data.DataLoader(ds,
@@ -87,14 +87,14 @@ def main():
                                      shuffle=False,)
 
     model.eval()
-    with open("/tools/Stage1.yaml", "r") as f:
+    with open("./tools/Stage1.yaml", "r") as f:
         vq_config = yaml.safe_load(f)
 
 
     vq_model_config = vq_config["model"]["params"]
     vq_model_config["lossconfig"] = None  # Or use Identity if needed
 
-    vq_model = VQModel(**vq_model_config, ckpt_path="/checkpoints/Stage1.ckpt")
+    vq_model = VQModel(**vq_model_config, ckpt_path="./checkpoints/Stage1.ckpt")
 
     vq_model.eval()
 
@@ -122,7 +122,7 @@ def main():
 
 
         miss_name = args.output_dir + '/' + subject_name +'-' + batch['t_list'][0]+ '-'+"inference"
-        print(miss_name)
+        print("Generation storage in :",miss_name)
 
 
 
@@ -152,13 +152,13 @@ def main():
         statetoload=batch['t_list'][0]
         selected_model_path=""
         if statetoload=="t1n":
-            selected_model_path="/checkpoints/Stage2_t1n.pt"        
+            selected_model_path="./checkpoints/Stage2_t1n.pt"        
         elif statetoload=="t1c":
-            selected_model_path="/checkpoints/Stage2_t1c.pt"         
+            selected_model_path="./checkpoints/Stage2_t1c.pt"         
         elif statetoload=="t2w":
-            selected_model_path="/checkpoints/Stage2_t2w.pt"        
+            selected_model_path="./checkpoints/Stage2_t2w.pt"        
         elif statetoload=="t2f":
-            selected_model_path="/checkpoints/Stage2_t2f.pt"         
+            selected_model_path="./checkpoints/Stage2_t2f.pt"         
 
         logger.log("Target is from: {}".format(statetoload)) #remove later
         logger.log("Load model from: {}".format(selected_model_path))	

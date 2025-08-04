@@ -42,7 +42,7 @@ clip_denoised: true
 use_ddim: false
 
 # Output
-output_dir: /output
+output_dir: ./output
 devices: [0]  
 image_size: 224
 model_path: ""
