@@ -92,7 +92,7 @@ def get_brats_dataset(data_paths, csv_path=None, phase="train"):
 
             
             all_modalities = {'t1n': t1n, 't1c': t1c, 't2w': t2w, 't2f': t2f}
-            target_modality, target_pathname, source_modalities = next(((m, path,[k for k in all_modalities if k != m])
+            target_modality, _, source_modalities = next(((m, path,[k for k in all_modalities if k != m])
                                                     for m, path in all_modalities.items()
                                                     if path is None), (None, None, []))
             header_path=glob.glob(os.path.join(sub_path, f"{subject}-{source_modalities[0]}.nii.gz"))[0]
@@ -102,16 +102,17 @@ def get_brats_dataset(data_paths, csv_path=None, phase="train"):
                 "t2w": t2w,
                 "t2f": t2f,
                 "target_modality":target_modality,
-                "source_modalities":source_modalities,
-                "target_pathname": target_pathname,
+                "source_modalities":source_modalities,      
                 "header_path":header_path,
                 "subject_id": subject,
-                "path": t1n
+                
             }
-            dict_to_be_appended.pop(target_modality, None)
+            dict_to_be_appended[target_modality]=dict_to_be_appended[source_modalities[0]]
             data.append(dict_to_be_appended)
 
-    print(phase, " num of subject:", len(data))
+    # for i, t in enumerate(transform.transforms):
+    #         t.allow_missing_keys=True
+    #         print(f"{i}: {t.allow_missing_keys}")
     return MonaiDataset(data=data, transform=transform)
 
 
