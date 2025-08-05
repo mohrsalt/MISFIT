@@ -70,7 +70,7 @@ def main():
     args = load_args_from_yaml("./tools/Stage2.yaml")
     seed = args.seed
     dist_util.setup_dist(devices=args.devices)
-    logger.configure()
+    # logger.configure()
 
     logger.log("Creating model and diffusion...")
     model, diffusion = create_model_and_diffusion(
