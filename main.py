@@ -72,7 +72,7 @@ def main():
     dist_util.setup_dist(devices=args.devices)
     # logger.configure()
 
-    logger.log("Creating model and diffusion...")
+    print("Creating model and diffusion...")
     model, diffusion = create_model_and_diffusion(
         **args_to_dict(args, model_and_diffusion_defaults().keys())
     )
@@ -160,8 +160,8 @@ def main():
         elif statetoload=="t2f":
             selected_model_path="./checkpoints/Stage2_t2f.pt"         
 
-        logger.log("Target is from: {}".format(statetoload)) #remove later
-        logger.log("Load model from: {}".format(selected_model_path))	
+        print("Target is from: {}".format(statetoload)) #remove later
+        print("Load model from: {}".format(selected_model_path))	
 
 
 

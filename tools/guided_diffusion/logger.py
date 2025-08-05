@@ -443,32 +443,9 @@ def configure(dir='./results', format_strs=None, comm=None, log_suffix=""):
     """
     If comm is provided, average all numerical stats across that comm
     """
-    if dir is None:
-        dir = os.getenv("OPENAI_LOGDIR")
-    if dir is None:
-        dir = osp.join(
-            tempfile.gettempdir(),
-            datetime.datetime.now().strftime("openai-%Y-%m-%d-%H-%M-%S-%f"),
-        )
-    assert isinstance(dir, str)
-    dir = os.path.expanduser(dir)
-    os.makedirs(os.path.expanduser(dir), exist_ok=True)
 
-    rank = get_rank_without_mpi_import()
-    if rank > 0:
-        log_suffix = log_suffix + "-rank%03i" % rank
 
-    if format_strs is None:
-        if rank == 0:
-            format_strs = os.getenv("OPENAI_LOG_FORMAT", "stdout,log,csv").split(",")
-        else:
-            format_strs = os.getenv("OPENAI_LOG_FORMAT_MPI", "log").split(",")
-    format_strs = filter(None, format_strs)
-    output_formats = [make_output_format(f, dir, log_suffix) for f in format_strs]
-
-    Logger.CURRENT = Logger(dir=dir, output_formats=output_formats, comm=comm)
-    if output_formats:
-        log("Logging to %s" % dir)
+    Logger.CURRENT = Logger(dir=None, output_formats=[], comm=comm)
 
 
 def _configure_default_logger():
